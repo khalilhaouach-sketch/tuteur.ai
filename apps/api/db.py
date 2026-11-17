@@ -2,8 +2,10 @@
 
 import os
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
+
+from agent.db_utils import iso, maintenant  # noqa: F401 (réexportés)
 
 SCHEMA = Path(__file__).resolve().parents[2] / "db" / "schema.sql"
 
@@ -42,14 +44,6 @@ def get_db():
         raise
     finally:
         conn.close()
-
-
-def maintenant() -> datetime:
-    return datetime.now(timezone.utc).replace(microsecond=0)
-
-
-def iso(moment: datetime) -> str:
-    return moment.isoformat()
 
 
 def dans(**delai) -> str:

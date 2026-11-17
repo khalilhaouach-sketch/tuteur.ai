@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tuteur IA — Élève</title>
+<style>
+  :root { --fond:#f6f7f9; --carte:#fff; --texte:#1d2330; --doux:#667085; --accent:#1f7a5c; --eleve:#e7f3ee; --bord:#dde1e7; }
+  @media (prefers-color-scheme: dark) { :root { --fond:#14171c; --carte:#1d2128; --texte:#e8eaee; --doux:#9aa3b2; --accent:#4cc196; --eleve:#1f3a30; --bord:#2c323c; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Noto Naskh Arabic", "Segoe UI", sans-serif; background:var(--fond); color:var(--texte); }
+  main { max-width: 640px; margin: 0 auto; min-height: 100dvh; display:flex; flex-direction:column; padding: 16px; gap: 12px; }
+  h1 { font-size: 1.2rem; margin: 0; }
+  .carte { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:16px; }
+  input, textarea, button { font: inherit; font-size: 1.05rem; }
+  input, textarea { width:100%; padding:12px; border:1px solid var(--bord); border-radius:10px; background:var(--fond); color:var(--texte); }
+  button { padding: 12px 18px; border:0; border-radius:10px; background:var(--accent); color:#fff; cursor:pointer; }
+  button.secondaire { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button:disabled { opacity:.5; cursor:wait; }
+  #fil { flex:1; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+  .msg { padding:12px 14px; border-radius:14px; max-width:90%; white-space:pre-wrap; line-height:1.7; font-size:1.1rem; }
+  .tuteur { background:var(--carte); border:1px solid var(--bord); align-self:flex-start; }
+  .eleve { background:var(--eleve); align-self:flex-end; }
+  .saisie { display:flex; gap:8px; }
+  .saisie textarea { resize:none; height:52px; }
+  .erreur { color:#c0392b; min-height:1.2em; margin:0; }
+  .entete { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="entete"><h1>Tuteur IA — arabe</h1><span id="qui"></span></div>
+
+  <section id="ecran-code" class="carte" hidden>
+    <p>Tape le code à 6 chiffres donné par ton parent.</p>
+    <input id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456">
+    <p class="erreur" id="erreur-code"></p>
+    <button id="valider-code">Entrer</button>
+  </section>
+
+  <section id="ecran-accueil" class="carte" hidden>
+    <p>Prêt(e) à travailler ?</p>
+    <button id="commencer">Commencer la séance</button>
+  </section>
+
+  <section id="ecran-seance" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
+    <div id="fil" aria-live="polite"></div>
+    <p class="erreur" id="erreur-seance"></p>
+    <div class="saisie">
+      <textarea id="texte" dir="auto" placeholder="Écris ta réponse…"></textarea>
+      <button id="envoyer">Envoyer</button>
+    </div>
+    <button id="terminer" class="secondaire">Terminer la séance</button>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let seanceId = null;
+
+async function api(chemin, corps) {
+  const r = await fetch(chemin, {
+    method: corps === undefined ? "GET" : "POST",
+    headers: { "content-type": "application/json" },
+    body: corps === undefined ? undefined : JSON.stringify(corps),
+    credentials: "same-origin",
+  });
+  const donnees = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof donnees.detail === "string" ? donnees.detail : "Erreur, réessaie.");
+  return donnees;
+}
+
+function afficher(ecran) {
+  for (const id of ["ecran-code", "ecran-accueil", "ecran-seance"]) $(id).hidden = id !== ecran;
+}
+
+function ajouter(texte, qui) {
+  const div = document.createElement("div");
+  div.className = "msg " + qui;
+  div.dir = "auto";
+  div.textContent = texte;
+  $("fil").appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "end" });
+}
+
+async function occupe(bouton, action, zoneErreur) {
+  bouton.disabled = true; $(zoneErreur).textContent = "";
+  try { await action(); } catch (e) { $(zoneErreur).textContent = e.message; }
+  finally { bouton.disabled = false; }
+}
+
+async function demarrer() {
+  try {
+    const eleve = await api("/eleve/moi");
+    $("qui").textContent = eleve.prenom;
+    afficher("ecran-accueil");
+  } catch { afficher("ecran-code"); }
+}
+
+$("valider-code").onclick = () => occupe($("valider-code"), async () => {
+  const eleve = await api("/eleve/connexion", { code: $("code").value.trim() });
+  $("qui").textContent = eleve.prenom;
+  afficher("ecran-accueil");
+}, "erreur-code");
+
+$("commencer").onclick = () => occupe($("commencer"), async () => {
+  const r = await api("/eleve/seances", {});
+  seanceId = r.seance_id; $("fil").innerHTML = "";
+  afficher("ecran-seance");
+  ajouter(r.reponse, "tuteur");
+}, "erreur-seance");
+
+$("envoyer").onclick = () => occupe($("envoyer"), async () => {
+  const texte = $("texte").value.trim();
+  if (!texte) return;
+  ajouter(texte, "eleve"); $("texte").value = "";
+  const r = await api(`/eleve/seances/${seanceId}/messages`, { texte });
+  ajouter(r.reponse, "tuteur");
+}, "erreur-seance");
+
+$("texte").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("envoyer").click(); }
+});
+
+$("terminer").onclick = () => occupe($("terminer"), async () => {
+  const r = await api(`/eleve/seances/${seanceId}/fin`, {});
+  ajouter(r.reponse, "tuteur");
+  setTimeout(() => afficher("ecran-accueil"), 4000);
+}, "erreur-seance");
+
+demarrer();
+</script>
+</body>
+</html>

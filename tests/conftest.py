@@ -31,3 +31,31 @@ def inscrire(client, email="parent@exemple.ma", mot_de_passe="motdepasse123"):
     )
     assert r.status_code == 201, r.text
     return r
+
+
+@pytest.fixture
+def eleve_connecte(client, appareil_eleve):
+    """Un parent, un élève P2 et l'appareil de l'élève déjà connecté."""
+    inscrire(client)
+    eleve = client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"}).json()
+    code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
+    assert appareil_eleve.post("/eleve/connexion", json={"code": code}).status_code == 200
+    return eleve
+
+
+@pytest.fixture
+def faux_tuteur(app):
+    """Remplace l'API Claude par un faux client ; renvoie une fonction pour fixer le script."""
+    from agent.core import Tuteur
+    from apps.api.sessions.routes import get_tuteur
+    from tests.faux_claude import FauxClient
+
+    etat = {}
+
+    def programmer(script):
+        etat["client"] = FauxClient(script)
+        app.dependency_overrides[get_tuteur] = lambda: Tuteur(etat["client"])
+        return etat["client"]
+
+    yield programmer
+    app.dependency_overrides.clear()

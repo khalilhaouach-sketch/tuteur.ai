@@ -14,10 +14,13 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
 
 ## Commandes
 - Installer : `pip install -r requirements.txt`
-- Lancer l'API : `python3 -m uvicorn apps.api.main:app --reload` (page de test : http://localhost:8000/docs)
-- Lancer les tests : `python3 -m pytest`
-- Interface (Next.js) : à partir de la phase 2.
+- Lancer l'API et l'interface élève : `python3 -m uvicorn apps.api.main:app --reload`
+  (interface élève : http://localhost:8000/ ; page de test de l'API : http://localhost:8000/docs)
+- Lancer les tests (sans appel à l'API Claude) : `python3 -m pytest`
+- Lancer les evals sur la vraie API (payant) : `python3 -m evals.run_evals --reel`
+- Dans l'environnement cloud de Claude Code, ne jamais appeler la vraie API : utiliser le faux client de `tests/faux_claude.py`.
 
 Variables d'environnement :
 - `TUTEUR_DB` : chemin de la base SQLite (défaut : `data/tuteur.db`).
+- `ANTHROPIC_API_KEY` : clé de l'API Claude (jamais dans le code ni dans le dépôt).
 - `TUTEUR_COOKIE_SECURE` : `1` par défaut (cookies réservés à HTTPS ; localhost fonctionne aussi). Ne jamais mettre `0` en production.

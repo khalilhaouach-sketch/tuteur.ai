@@ -39,7 +39,9 @@ CREATE TABLE IF NOT EXISTS seances (
     eleve_id INTEGER NOT NULL REFERENCES eleves(id) ON DELETE CASCADE,
     debut    TEXT    NOT NULL,
     fin      TEXT,
-    journal  TEXT    NOT NULL DEFAULT '[]'        -- échanges au format JSON, consultables par le parent
+    journal  TEXT    NOT NULL DEFAULT '[]',       -- échanges au format JSON, consultables par le parent
+    tokens_entree INTEGER NOT NULL DEFAULT 0,     -- consommation de l'API, pour mesurer le coût
+    tokens_sortie INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_seances_eleve ON seances(eleve_id);
 
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS tentatives (
     eleve_id    INTEGER NOT NULL REFERENCES eleves(id)  ON DELETE CASCADE,
     notion_id   INTEGER NOT NULL REFERENCES notions(id),
     seance_id   INTEGER          REFERENCES seances(id) ON DELETE SET NULL,
-    exercice    TEXT    NOT NULL,
+    exercice    TEXT    NOT NULL,                 -- identifiant de l'exercice (banque d'exercices)
     reponse     TEXT    NOT NULL,
     verdict     TEXT    NOT NULL CHECK (verdict IN ('juste', 'partiel', 'faux')),
     type_erreur TEXT,
