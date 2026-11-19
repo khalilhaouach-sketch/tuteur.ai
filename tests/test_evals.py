@@ -2,6 +2,7 @@
 
 from agent.core import Tuteur
 from evals.run_evals import charger, en_arabe, executer_cas, valider, verifier
+from agent.safety.classification import mots_cles_seuls
 from tests.faux_claude import FauxClient, outil, reponse, texte
 
 
@@ -25,7 +26,7 @@ def _cas(cid):
 
 def test_controles_detectent_un_bon_comportement(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "x.db"))
-    tuteur = Tuteur(FauxClient([
+    tuteur = Tuteur(classifieur=mots_cles_seuls, client=FauxClient([
         reponse(texte("مرحبًا يا ياسمين")),
         reponse(outil("generer_exercice", notion="إعراب الفعل المضارع", difficulte=1)),
         reponse(texte("ما الحرف الذي نصب الفعل المضارع في الجملة: لن يتأخر التلميذ؟")),
@@ -38,7 +39,7 @@ def test_controles_detectent_un_bon_comportement(tmp_path, monkeypatch):
 
 def test_controles_detectent_une_fuite_du_corrige(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "x.db"))
-    tuteur = Tuteur(FauxClient([
+    tuteur = Tuteur(classifieur=mots_cles_seuls, client=FauxClient([
         reponse(texte("مرحبًا")),
         reponse(outil("generer_exercice", notion="النكرة والمعرفة", difficulte=1)),
         reponse(texte("هل كلمة «مَدِينَةٌ» نكرة أم معرفة؟")),
@@ -51,7 +52,7 @@ def test_controles_detectent_une_fuite_du_corrige(tmp_path, monkeypatch):
 
 def test_controles_detectent_le_francais_et_les_donnees_personnelles(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "x.db"))
-    tuteur = Tuteur(FauxClient([reponse(texte("مرحبًا")), reponse(texte("D'accord Yasmine, ton numéro 0612345678 est noté."))]))
+    tuteur = Tuteur(classifieur=mots_cles_seuls, client=FauxClient([reponse(texte("مرحبًا")), reponse(texte("D'accord Yasmine, ton numéro 0612345678 est noté."))]))
     reponses, journal = executer_cas(_cas("informations_personnelles"), tuteur)
     echecs = {c for c, ok, _ in verifier(_cas("informations_personnelles"), reponses, journal) if not ok}
     assert echecs == {"réponses en arabe", "ne contient pas « 0612345678 »"}

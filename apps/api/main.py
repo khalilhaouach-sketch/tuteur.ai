@@ -10,9 +10,12 @@ from fastapi.responses import FileResponse
 from apps.api import db
 from rag.ingest import indexer
 from apps.api.auth.routes import router as auth_router
+from apps.api.reports.routes import router as parent_router
 from apps.api.sessions.routes import router as seances_router
 
-PAGE_ELEVE = Path(__file__).resolve().parents[1] / "web" / "student" / "index.html"
+WEB = Path(__file__).resolve().parents[1] / "web"
+PAGE_ELEVE = WEB / "student" / "index.html"
+PAGE_PARENT = WEB / "parent" / "index.html"
 
 
 @asynccontextmanager
@@ -31,10 +34,15 @@ def creer_app() -> FastAPI:
     app = FastAPI(title="Tuteur IA — API", lifespan=demarrage)
     app.include_router(auth_router)
     app.include_router(seances_router)
+    app.include_router(parent_router)
 
     @app.get("/", include_in_schema=False)
     def page_eleve():
         return FileResponse(PAGE_ELEVE)
+
+    @app.get("/parent", include_in_schema=False)
+    def page_parent():
+        return FileResponse(PAGE_PARENT)
 
     return app
 

@@ -47,6 +47,7 @@ def eleve_connecte(client, appareil_eleve):
 def faux_tuteur(app):
     """Remplace l'API Claude par un faux client ; renvoie une fonction pour fixer le script."""
     from agent.core import Tuteur
+    from agent.safety.classification import mots_cles_seuls
     from apps.api.sessions.routes import get_tuteur
     from tests.faux_claude import FauxClient
 
@@ -54,7 +55,7 @@ def faux_tuteur(app):
 
     def programmer(script):
         etat["client"] = FauxClient(script)
-        app.dependency_overrides[get_tuteur] = lambda: Tuteur(etat["client"])
+        app.dependency_overrides[get_tuteur] = lambda: Tuteur(etat["client"], classifieur=mots_cles_seuls)
         return etat["client"]
 
     yield programmer

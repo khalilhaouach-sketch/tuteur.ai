@@ -41,6 +41,7 @@
 
   <section id="ecran-accueil" class="carte" hidden>
     <p>Prêt(e) à travailler ?</p>
+    <p class="erreur" id="erreur-accueil"></p>
     <button id="commencer">Commencer la séance</button>
   </section>
 
@@ -108,7 +109,7 @@ $("commencer").onclick = () => occupe($("commencer"), async () => {
   seanceId = r.seance_id; $("fil").innerHTML = "";
   afficher("ecran-seance");
   ajouter(r.reponse, "tuteur");
-}, "erreur-seance");
+}, "erreur-accueil");
 
 $("envoyer").onclick = () => occupe($("envoyer"), async () => {
   const texte = $("texte").value.trim();
@@ -116,7 +117,13 @@ $("envoyer").onclick = () => occupe($("envoyer"), async () => {
   ajouter(texte, "eleve"); $("texte").value = "";
   const r = await api(`/eleve/seances/${seanceId}/messages`, { texte });
   ajouter(r.reponse, "tuteur");
+  if (r.terminee) finDeSeance();  // temps écoulé : pause imposée
 }, "erreur-seance");
+
+function finDeSeance() {
+  $("envoyer").disabled = true; $("terminer").disabled = true;
+  setTimeout(() => { $("envoyer").disabled = false; $("terminer").disabled = false; afficher("ecran-accueil"); }, 6000);
+}
 
 $("texte").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("envoyer").click(); }
@@ -125,7 +132,7 @@ $("texte").addEventListener("keydown", (e) => {
 $("terminer").onclick = () => occupe($("terminer"), async () => {
   const r = await api(`/eleve/seances/${seanceId}/fin`, {});
   ajouter(r.reponse, "tuteur");
-  setTimeout(() => afficher("ecran-accueil"), 4000);
+  finDeSeance();
 }, "erreur-seance");
 
 demarrer();

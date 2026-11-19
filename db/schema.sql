@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS seances (
     eleve_id INTEGER NOT NULL REFERENCES eleves(id) ON DELETE CASCADE,
     debut    TEXT    NOT NULL,
     fin      TEXT,
+    fin_raison TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle')),  -- qui a terminé la séance
     journal  TEXT    NOT NULL DEFAULT '[]',       -- échanges au format JSON, consultables par le parent
     tokens_entree INTEGER NOT NULL DEFAULT 0,     -- consommation de l'API, pour mesurer le coût
     tokens_sortie INTEGER NOT NULL DEFAULT 0
@@ -67,6 +68,18 @@ CREATE TABLE IF NOT EXISTS maitrise (
     prochaine_revision TEXT,
     PRIMARY KEY (eleve_id, notion_id)
 );
+
+-- Alertes pour le parent (détresse exprimée par l'élève).
+CREATE TABLE IF NOT EXISTS alertes (
+    id        INTEGER PRIMARY KEY,
+    eleve_id  INTEGER NOT NULL REFERENCES eleves(id)  ON DELETE CASCADE,
+    seance_id INTEGER          REFERENCES seances(id) ON DELETE SET NULL,
+    type      TEXT    NOT NULL CHECK (type IN ('detresse')),
+    extrait   TEXT    NOT NULL,                   -- message de l'élève (données personnelles masquées)
+    cree_le   TEXT    NOT NULL,
+    vue_le    TEXT                                -- date de lecture par le parent
+);
+CREATE INDEX IF NOT EXISTS idx_alertes_eleve ON alertes(eleve_id, vue_le);
 
 -- Bilans envoyés aux parents.
 CREATE TABLE IF NOT EXISTS rapports (

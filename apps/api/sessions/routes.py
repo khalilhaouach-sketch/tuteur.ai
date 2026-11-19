@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from agent.core import LONGUEUR_MAX_MESSAGE, PROFILS, Tuteur, TuteurIndisponible
+from agent.safety import limites
 from agent.tools import Contexte
 from agent.tools.rapport_parent import rediger
-from apps.api.auth.routes import eleve_connecte, parent_connecte, _eleve_du_parent
+from apps.api.auth.routes import eleve_connecte
 from apps.api.db import get_db, iso, maintenant
 
 router = APIRouter(tags=["séances"])
@@ -41,9 +42,14 @@ def _indisponible():
     )
 
 
+MESSAGE_FIN_TEMPS = "اِنْتَهَى وَقْتُ الحِصَّةِ. خُذْ قِسْطًا مِنَ الرَّاحَةِ، وَإِلَى اللِّقَاءِ!"
+RECAP_SECOURS = "أَحْسَنْتَ! إِلَى اللِّقَاءِ فِي الحِصَّةِ القَادِمَةِ."
+
+
 def _seance_ouverte(db, seance_id: int, eleve_id: int):
     seance = db.execute(
-        "SELECT id, fin FROM seances WHERE id = ? AND eleve_id = ?", (seance_id, eleve_id)
+        "SELECT s.id, s.fin, s.debut, e.profil FROM seances s JOIN eleves e ON e.id = s.eleve_id"
+        " WHERE s.id = ? AND s.eleve_id = ?", (seance_id, eleve_id)
     ).fetchone()
     if seance is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Séance introuvable.")
@@ -57,9 +63,16 @@ def commencer(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db), tuteu
     (profil,) = db.execute("SELECT profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
     if profil not in PROFILS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ce profil sera bientôt disponible.")
+    pause = limites.pause_restante(db, eleve_id)
+    if pause:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, f"C'est l'heure de la pause : tu pourras reprendre dans {pause} min."
+        )
     now = iso(maintenant())
     # Une seule séance ouverte à la fois.
-    db.execute("UPDATE seances SET fin = ? WHERE eleve_id = ? AND fin IS NULL", (now, eleve_id))
+    db.execute(
+        "UPDATE seances SET fin = ?, fin_raison = 'nouvelle' WHERE eleve_id = ? AND fin IS NULL", (now, eleve_id)
+    )
     seance_id = db.execute(
         "INSERT INTO seances (eleve_id, debut) VALUES (?, ?)", (eleve_id, now)
     ).lastrowid
@@ -78,14 +91,17 @@ def envoyer(
     db=Depends(get_db),
     tuteur=Depends(get_tuteur),
 ):
-    _seance_ouverte(db, seance_id, eleve_id)
+    seance = _seance_ouverte(db, seance_id, eleve_id)
+    if limites.temps_ecoule(seance["debut"], seance["profil"]):
+        recap = _cloturer(db, tuteur, eleve_id, seance_id, "temps")
+        return {"reponse": recap + "\n\n" + MESSAGE_FIN_TEMPS, "terminee": True}
     (nombre,) = db.execute(
         "SELECT json_array_length(journal) FROM seances WHERE id = ?", (seance_id,)
     ).fetchone()
     if nombre >= MAX_MESSAGES_PAR_SEANCE * 3:
         raise HTTPException(status.HTTP_409_CONFLICT, "Séance trop longue : termine-la et fais une pause.")
     try:
-        return {"reponse": tuteur.repondre(db, eleve_id, seance_id, message.texte)}
+        return {"reponse": tuteur.repondre(db, eleve_id, seance_id, message.texte), "terminee": False}
     except TuteurIndisponible:
         raise _indisponible()
 
@@ -95,21 +111,17 @@ def terminer(
     seance_id: int, eleve_id: int = Depends(eleve_connecte), db=Depends(get_db), tuteur=Depends(get_tuteur)
 ):
     _seance_ouverte(db, seance_id, eleve_id)
+    return {"reponse": _cloturer(db, tuteur, eleve_id, seance_id, "eleve"), "terminee": True}
+
+
+def _cloturer(db, tuteur: Tuteur, eleve_id: int, seance_id: int, raison: str) -> str:
+    """Récapitulatif pour l'élève, fin de séance et bilan du jour pour le parent."""
     try:
         recapitulatif = tuteur.conclure(db, eleve_id, seance_id)
     except TuteurIndisponible:
-        recapitulatif = "أَحْسَنْتَ! إِلَى اللِّقَاءِ فِي الحِصَّةِ القَادِمَةِ."
-    db.execute("UPDATE seances SET fin = ? WHERE id = ?", (iso(maintenant()), seance_id))
-    # Le bilan du jour part au parent (enregistré dans rapports).
+        recapitulatif = RECAP_SECOURS
+    db.execute(
+        "UPDATE seances SET fin = ?, fin_raison = ? WHERE id = ?", (iso(maintenant()), raison, seance_id)
+    )
     rediger(Contexte(db=db, eleve_id=eleve_id, seance_id=seance_id, profil=""), 1)
-    return {"reponse": recapitulatif}
-
-
-@router.get("/eleves/{eleve_id}/rapports", tags=["élèves"])
-def rapports(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
-    _eleve_du_parent(db, eleve_id, parent_id)
-    lignes = db.execute(
-        "SELECT periode_debut, periode_fin, texte FROM rapports WHERE eleve_id = ? ORDER BY id DESC LIMIT 20",
-        (eleve_id,),
-    ).fetchall()
-    return [dict(l) for l in lignes]
+    return recapitulatif

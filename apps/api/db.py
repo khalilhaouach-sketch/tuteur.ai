@@ -18,7 +18,9 @@ def ouvrir() -> sqlite3.Connection:
     chemin = chemin_base()
     if chemin != ":memory:":
         Path(chemin).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(chemin)
+    # Une connexion par requête : FastAPI peut l'ouvrir et la fermer dans des fils d'exécution
+    # différents, mais jamais l'utiliser dans deux requêtes à la fois.
+    conn = sqlite3.connect(chemin, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
@@ -29,8 +31,24 @@ def initialiser() -> None:
     conn = ouvrir()
     try:
         conn.executescript(SCHEMA.read_text(encoding="utf-8"))
+        _ajouter_colonnes_manquantes(conn)
+        conn.commit()
     finally:
         conn.close()
+
+
+# Colonnes ajoutées après la création des premières bases (en attendant de vraies migrations).
+_COLONNES_AJOUTEES = {
+    "seances": {"fin_raison": "TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle'))"},
+}
+
+
+def _ajouter_colonnes_manquantes(conn: sqlite3.Connection) -> None:
+    for table, colonnes in _COLONNES_AJOUTEES.items():
+        existantes = {c[1] for c in conn.execute(f"PRAGMA table_info({table})")}
+        for nom, definition in colonnes.items():
+            if nom not in existantes:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {nom} {definition}")
 
 
 def get_db():

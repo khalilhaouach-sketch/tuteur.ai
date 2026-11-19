@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tuteur IA — Espace parent</title>
+<style>
+  :root { --fond:#f6f7f9; --carte:#fff; --texte:#1d2330; --doux:#5f6b7a; --accent:#1f7a5c; --alerte:#b42318; --alerte-fond:#fef3f2; --bord:#dde1e7; --eleve:#e7f3ee; }
+  @media (prefers-color-scheme: dark) { :root { --fond:#14171c; --carte:#1d2128; --texte:#e8eaee; --doux:#9aa3b2; --accent:#4cc196; --alerte:#f97066; --alerte-fond:#3a1d1b; --bord:#2c323c; --eleve:#1f3a30; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Noto Naskh Arabic", "Segoe UI", sans-serif; background:var(--fond); color:var(--texte); }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; display:flex; flex-direction:column; gap:14px; }
+  h1 { font-size:1.25rem; margin:0; } h2 { font-size:1.05rem; margin:0 0 8px; }
+  .carte { background:var(--carte); border:1px solid var(--bord); border-radius:14px; padding:16px; }
+  input, select, button { font:inherit; }
+  input, select { width:100%; padding:10px; border:1px solid var(--bord); border-radius:10px; background:var(--fond); color:var(--texte); margin-bottom:8px; }
+  button { padding:10px 14px; border:0; border-radius:10px; background:var(--accent); color:#fff; cursor:pointer; }
+  button.lien { background:none; color:var(--accent); padding:4px 0; }
+  button.secondaire { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .ligne { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .doux { color:var(--doux); font-size:.9rem; }
+  .erreur { color:var(--alerte); min-height:1.2em; margin:4px 0; }
+  .badge { background:var(--alerte); color:#fff; border-radius:999px; padding:2px 10px; font-size:.85rem; }
+  .alerte { background:var(--alerte-fond); border:1px solid var(--alerte); border-radius:12px; padding:12px; margin-bottom:8px; }
+  table { width:100%; border-collapse:collapse; font-size:.95rem; }
+  th, td { text-align:start; padding:8px 6px; border-bottom:1px solid var(--bord); vertical-align:top; }
+  .tableau { overflow-x:auto; }
+  .barre { height:8px; background:var(--bord); border-radius:4px; min-width:60px; }
+  .barre > div { height:100%; background:var(--accent); border-radius:4px; }
+  .msg { padding:8px 12px; border-radius:12px; margin:6px 0; white-space:pre-wrap; line-height:1.7; }
+  .msg.eleve { background:var(--eleve); margin-inline-start:20%; }
+  .msg.tuteur { border:1px solid var(--bord); margin-inline-end:20%; }
+  .msg.outil { color:var(--doux); font-size:.85rem; padding:2px 12px; }
+  .code { font-size:2rem; letter-spacing:.3em; font-weight:700; }
+  pre { white-space:pre-wrap; font-family:inherit; margin:0; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="ligne"><h1>Espace parent</h1><button id="deconnexion" class="lien" hidden>Se déconnecter</button></div>
+
+  <!-- Connexion / inscription -->
+  <section id="ecran-connexion" class="carte" hidden>
+    <h2 id="titre-connexion">Connexion</h2>
+    <input id="email" type="email" placeholder="Adresse e-mail" autocomplete="email">
+    <input id="mdp" type="password" placeholder="Mot de passe (8 caractères minimum)" autocomplete="current-password">
+    <label id="zone-consentement" hidden><input id="consentement" type="checkbox" style="width:auto"> J'autorise mon enfant à utiliser le tuteur et j'accepte que ses résultats soient enregistrés (prénom, niveau, résultats uniquement).</label>
+    <p class="erreur" id="erreur-connexion"></p>
+    <div class="ligne"><button id="valider-connexion">Se connecter</button><button id="basculer" class="lien">Créer un compte</button></div>
+  </section>
+
+  <!-- Tableau de bord -->
+  <section id="ecran-tableau" hidden>
+    <div id="liste-eleves" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="carte" style="margin-top:12px">
+      <h2>Ajouter un enfant</h2>
+      <input id="prenom" placeholder="Prénom uniquement">
+      <select id="profil"><option value="P2">1ʳᵉ année du collège (1AC)</option><option value="P1">CP</option></select>
+      <p class="erreur" id="erreur-ajout"></p>
+      <button id="ajouter">Ajouter</button>
+    </div>
+  </section>
+
+  <!-- Détail d'un enfant -->
+  <section id="ecran-eleve" hidden style="display:flex;flex-direction:column;gap:12px">
+    <div class="ligne"><button id="retour" class="lien">← Retour</button><h2 id="nom-eleve" style="margin:0"></h2></div>
+    <div id="zone-alertes"></div>
+    <div class="carte"><h2>Connecter la tablette de l'enfant</h2>
+      <p class="doux">Le code est valable 15 minutes et une seule fois. Ouvrez la page du tuteur sur l'appareil de l'enfant et tapez-le.</p>
+      <div class="ligne"><span id="code" class="code"></span><button id="generer-code" class="secondaire">Générer un code</button></div>
+    </div>
+    <div class="carte"><h2>Progression par leçon</h2><div class="tableau" id="progression"></div></div>
+    <div class="carte"><h2>Bilans</h2>
+      <div class="ligne"><span class="doux">Rédigés à partir des résultats enregistrés.</span><button id="generer-bilan" class="secondaire">Bilan des 7 derniers jours</button></div>
+      <div id="bilans"></div>
+    </div>
+    <div class="carte"><h2>Séances et journal des échanges</h2><div id="seances"></div></div>
+  </section>
+
+  <section id="ecran-journal" class="carte" hidden>
+    <div class="ligne"><button id="retour-journal" class="lien">← Retour</button><h2 id="titre-journal" style="margin:0"></h2></div>
+    <div id="journal"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const PROFILS = { P1: "CP", P2: "1AC" };
+let mode = "connexion", eleveCourant = null;
+
+async function api(chemin, corps, methode) {
+  const r = await fetch(chemin, {
+    method: methode || (corps === undefined ? "GET" : "POST"),
+    headers: { "content-type": "application/json" },
+    body: corps === undefined ? undefined : JSON.stringify(corps),
+  });
+  if (r.status === 204) return null;
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Vérifiez les informations saisies.");
+  return d;
+}
+const el = (tag, attrs = {}, ...enfants) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) k === "class" ? e.className = v : e.setAttribute(k, v);
+  for (const c of enfants) e.append(c);
+  return e;
+};
+const date = (iso) => iso ? new Date(iso).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }) : "—";
+function afficher(id) {
+  for (const s of ["ecran-connexion", "ecran-tableau", "ecran-eleve", "ecran-journal"]) $(s).hidden = s !== id;
+  $("deconnexion").hidden = id === "ecran-connexion";
+}
+async function essai(action, zone) { try { $(zone).textContent = ""; await action(); } catch (e) { $(zone).textContent = e.message; } }
+
+// Connexion
+$("basculer").onclick = () => {
+  mode = mode === "connexion" ? "inscription" : "connexion";
+  $("titre-connexion").textContent = mode === "connexion" ? "Connexion" : "Créer un compte parent";
+  $("valider-connexion").textContent = mode === "connexion" ? "Se connecter" : "Créer le compte";
+  $("basculer").textContent = mode === "connexion" ? "Créer un compte" : "J'ai déjà un compte";
+  $("zone-consentement").hidden = mode === "connexion";
+};
+$("valider-connexion").onclick = () => essai(async () => {
+  const corps = { email: $("email").value, mot_de_passe: $("mdp").value };
+  if (mode === "inscription") corps.consentement = $("consentement").checked;
+  await api(mode === "connexion" ? "/parents/connexion" : "/parents/inscription", corps);
+  await tableau();
+}, "erreur-connexion");
+$("deconnexion").onclick = async () => { await api("/parents/deconnexion", {}); afficher("ecran-connexion"); };
+
+// Tableau de bord
+async function tableau() {
+  const eleves = await api("/parents/tableau");
+  const liste = $("liste-eleves"); liste.innerHTML = "";
+  if (!eleves.length) liste.append(el("p", { class: "doux" }, "Ajoutez votre premier enfant ci-dessous."));
+  for (const e of eleves) {
+    const carte = el("div", { class: "carte ligne" },
+      el("div", {}, el("strong", {}, e.prenom), " ", el("span", { class: "doux" }, `· ${PROFILS[e.profil]} · dernière séance : ${date(e.derniere_seance)}`)));
+    const droite = el("div", { class: "ligne" });
+    if (e.alertes) droite.append(el("span", { class: "badge" }, `${e.alertes} alerte${e.alertes > 1 ? "s" : ""}`));
+    const voir = el("button", {}, "Voir"); voir.onclick = () => detail(e); droite.append(voir);
+    carte.append(droite); liste.append(carte);
+  }
+  afficher("ecran-tableau");
+}
+$("ajouter").onclick = () => essai(async () => {
+  await api("/eleves", { prenom: $("prenom").value, profil: $("profil").value });
+  $("prenom").value = ""; await tableau();
+}, "erreur-ajout");
+
+// Détail d'un enfant
+async function detail(e) {
+  eleveCourant = e; $("nom-eleve").textContent = `${e.prenom} · ${PROFILS[e.profil]}`; $("code").textContent = "";
+  const [alertes, prog, bilans, seances] = await Promise.all([
+    api(`/eleves/${e.id}/alertes`), api(`/eleves/${e.id}/progression`),
+    api(`/eleves/${e.id}/rapports`), api(`/eleves/${e.id}/seances`)]);
+
+  const za = $("zone-alertes"); za.innerHTML = "";
+  for (const a of alertes.filter((a) => !a.vue_le)) {
+    const ok = el("button", { class: "secondaire" }, "J'ai pris connaissance");
+    ok.onclick = async () => { await api(`/eleves/${e.id}/alertes/${a.id}/vue`, {}); detail(e); };
+    za.append(el("div", { class: "alerte" },
+      el("strong", {}, "⚠️ Votre enfant a peut-être exprimé une détresse"), el("br"),
+      el("span", { class: "doux" }, date(a.cree_le)), el("p", { dir: "auto" }, `« ${a.extrait} »`),
+      el("p", {}, "Le tuteur l'a encouragé à en parler à un adulte de confiance. Prenez le temps d'en discuter avec lui."), ok));
+  }
+
+  const p = $("progression"); p.innerHTML = "";
+  if (!prog.length) p.append(el("p", { class: "doux" }, "Pas encore d'exercice terminé."));
+  else {
+    const t = el("table", {}, el("tr", {}, el("th", {}, "Leçon"), el("th", {}, "Maîtrise"), el("th", {}, "Réussis"), el("th", {}, "Erreur fréquente"), el("th", {}, "Révision")));
+    for (const l of prog) {
+      const barre = el("div", { class: "barre", title: `${Math.round(l.maitrise * 100)} %` }, el("div", { style: `width:${Math.round(l.maitrise * 100)}%` }));
+      t.append(el("tr", {}, el("td", { dir: "auto" }, l.notion), el("td", {}, barre), el("td", {}, `${l.reussis}/${l.exercices}`),
+        el("td", { dir: "auto" }, l.erreur_frequente || "—"), el("td", {}, l.prochaine_revision ? new Date(l.prochaine_revision).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "—")));
+    }
+    p.append(t);
+  }
+
+  const b = $("bilans"); b.innerHTML = "";
+  for (const r of bilans.slice(0, 5)) b.append(el("div", { class: "msg tuteur" }, el("span", { class: "doux" }, date(r.cree_le)), el("pre", { dir: "auto" }, r.texte)));
+
+  const s = $("seances"); s.innerHTML = "";
+  if (!seances.length) s.append(el("p", { class: "doux" }, "Aucune séance pour l'instant."));
+  for (const x of seances) {
+    const raison = { eleve: "terminée par l'enfant", temps: "temps écoulé", nouvelle: "remplacée par une nouvelle séance" }[x.fin_raison] || (x.fin ? "terminée" : "en cours");
+    const voir = el("button", { class: "lien" }, "Lire le journal"); voir.onclick = () => journal(x);
+    s.append(el("div", { class: "ligne", style: "border-bottom:1px solid var(--bord);padding:6px 0" },
+      el("span", {}, `${date(x.debut)} · ${raison}`, x.alertes ? el("span", { class: "badge", style: "margin-inline-start:6px" }, "alerte") : ""), voir));
+  }
+  afficher("ecran-eleve");
+}
+$("retour").onclick = tableau;
+$("generer-code").onclick = async () => { const r = await api(`/eleves/${eleveCourant.id}/code`, {}); $("code").textContent = r.code; };
+$("generer-bilan").onclick = async () => { await api(`/eleves/${eleveCourant.id}/rapports?periode_jours=7`, {}); detail(eleveCourant); };
+
+async function journal(seance) {
+  const echanges = await api(`/eleves/${eleveCourant.id}/seances/${seance.id}/journal`);
+  $("titre-journal").textContent = `Séance du ${date(seance.debut)}`;
+  const j = $("journal"); j.innerHTML = "";
+  if (!echanges.length) j.append(el("p", { class: "doux" }, "Aucun échange."));
+  for (const m of echanges) j.append(el("div", { class: `msg ${m.qui}`, dir: "auto" }, m.qui === "outil" ? `⚙ ${m.texte}` : m.texte));
+  afficher("ecran-journal");
+}
+$("retour-journal").onclick = () => detail(eleveCourant);
+
+api("/parents/moi").then(tableau).catch(() => afficher("ecran-connexion"));
+</script>
+</body>
+</html>

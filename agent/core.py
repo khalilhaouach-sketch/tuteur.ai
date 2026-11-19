@@ -11,6 +11,9 @@ from pathlib import Path
 import anthropic
 
 from agent import memoire
+from agent.safety import filtres
+from agent.safety.classification import Classifieur
+from agent.db_utils import maintenant_iso
 from agent.tools import DEFINITIONS, Contexte, ErreurOutil, executer
 
 MODELE = "claude-opus-5-5"
@@ -50,9 +53,27 @@ def _texte(contenu: list[dict]) -> str:
     return "\n".join(b["text"] for b in contenu if b.get("type") == "text").strip()
 
 
+CONSIGNE_DETRESSE = (
+    "SIGNAL DE SÉCURITÉ : l'élève exprime peut-être une détresse, une peur ou un danger. Réponds avec douceur, "
+    "sans faire de thérapie ni poser de questions intrusives. Encourage-le à en parler maintenant à un adulte de "
+    "confiance (un parent, un enseignant). Tu peux lui dire qu'un adulte de sa famille sera prévenu. "
+    "Ne reprends pas l'exercice dans cette réponse."
+)
+CONSIGNE_HORS_SUJET = (
+    "Le dernier message de l'élève est hors sujet : ne réponds pas sur le fond, recentre-le gentiment "
+    "et brièvement sur la leçon d'arabe."
+)
+CONSIGNE_DONNEES = (
+    "L'élève a tapé une information personnelle, qui a été masquée. Rappelle-lui gentiment qu'il ne faut pas "
+    "partager ce genre d'information, puis reviens à la leçon."
+)
+
+
 class Tuteur:
-    def __init__(self, client):
+    def __init__(self, client, classifieur=None):
         self.client = client  # anthropic.Anthropic() en production, un faux client dans les tests
+        # Contrôle de sécurité de chaque message de l'élève (détresse, hors sujet).
+        self.classifieur = classifieur or Classifieur(client)
 
     # --- API publique ---------------------------------------------------------
 
@@ -66,8 +87,24 @@ class Tuteur:
         return self._tour(db, eleve_id, seance_id, nouveaux)
 
     def repondre(self, db: sqlite3.Connection, eleve_id: int, seance_id: int, texte: str) -> str:
-        texte = texte.strip()[:LONGUEUR_MAX_MESSAGE]
-        return self._tour(db, eleve_id, seance_id, [{"role": "user", "content": texte}])
+        texte, masque = filtres.masquer(texte.strip()[:LONGUEUR_MAX_MESSAGE])
+        signaux = self.classifieur(texte)
+        consignes = []
+        if signaux["detresse"]:
+            db.execute(
+                "INSERT INTO alertes (eleve_id, seance_id, type, extrait, cree_le) VALUES (?, ?, 'detresse', ?, ?)",
+                (eleve_id, seance_id, texte[:300], maintenant_iso()),
+            )
+            db.commit()  # l'alerte est gardée même si le tuteur ne répond pas ensuite
+            consignes.append(CONSIGNE_DETRESSE)
+        elif signaux["hors_sujet"]:
+            consignes.append(CONSIGNE_HORS_SUJET)
+        if masque:
+            consignes.append(CONSIGNE_DONNEES)
+        nouveaux = [{"role": "user", "content": texte}]
+        if consignes:
+            nouveaux.append({"role": "system", "content": "\n".join(consignes)})
+        return self._tour(db, eleve_id, seance_id, nouveaux)
 
     def conclure(self, db: sqlite3.Connection, eleve_id: int, seance_id: int) -> str:
         nouveaux = [
