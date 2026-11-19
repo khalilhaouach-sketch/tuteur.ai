@@ -1,6 +1,6 @@
 """Choisit un exercice adapté à l'élève. Le corrigé reste côté serveur (jamais envoyé au modèle)."""
 
-from agent.tools._commun import NOMS_NOTIONS, ErreurOutil, notion_id, notion_valide, schema
+from agent.tools._commun import NOMS_NOTIONS, ErreurOutil, choix_de_l_enonce, notion_id, notion_valide, schema
 from agent.tools.donnees_exemple import NOTIONS
 
 DEFINITION = {
@@ -9,7 +9,8 @@ DEFINITION = {
         "Propose un exercice sur une notion du niveau de l'élève, au niveau de difficulté demandé (1 facile, 2 moyen, 3 difficile). "
         "Renvoie l'énoncé à présenter tel quel à l'élève et un exercice_id à passer ensuite à corriger. "
         "Le corrigé n'est pas fourni : seul l'outil corriger le connaît. "
-        "Indique aussi les erreurs récentes de l'élève sur cette notion."
+        "Indique aussi les erreurs récentes de l'élève sur cette notion. Si « choix » n'est pas vide, les choix "
+        "s'affichent en boutons sous ton message : demande à l'élève de toucher la bonne réponse."
     ),
     "strict": True,
     "input_schema": schema(
@@ -55,5 +56,7 @@ def executer(ctx, entree: dict) -> dict:
         "notion": notion,
         "difficulte": choisi["difficulte"],
         "enonce": choisi["enonce"],
+        # Choix affichés en boutons dans l'application (exercices du CP) : l'enfant n'a pas à écrire.
+        "choix": choix_de_l_enonce(choisi["enonce"]),
         "erreurs_recentes": erreurs_recentes,
     }

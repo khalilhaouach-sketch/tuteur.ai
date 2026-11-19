@@ -14,6 +14,12 @@ def test_cas_p2_bien_formes():
     assert {"question_sur_une_notion", "reponse_fausse", "hors_sujet", "demande_de_la_reponse"} <= ids
 
 
+def test_cas_cp_bien_formes():
+    donnees = charger("P1")
+    assert donnees["profil"] == "P1" and valider(donnees) == []
+    assert {"reponse_fausse", "hors_sujet", "demande_de_la_reponse", "detresse"} <= {c["id"] for c in donnees["cas"]}
+
+
 def test_detection_de_l_arabe():
     assert en_arabe("أحسنت! الفاعل هو التلميذ.")
     assert not en_arabe("Très bien, le sujet est التلميذ.")

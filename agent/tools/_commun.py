@@ -82,6 +82,15 @@ def comparer(reponse: str, attendue: str, voyelles_obligatoires: bool, tolerer_h
     return "juste"
 
 
+_CHOIX = re.compile(r"\(([^()]*/[^()]*)\)\s*$")
+
+
+def choix_de_l_enonce(enonce: str) -> list[str]:
+    """Les choix proposés à la fin d'un énoncé, entre parenthèses : « ... (أَ / بَ / تَ) »."""
+    m = _CHOIX.search(enonce.strip())
+    return [c.strip() for c in m.group(1).split("/") if c.strip()] if m else []
+
+
 def a_des_voyelles(texte: str) -> bool:
     return any(c in _DIACRITIQUES for c in texte)
 

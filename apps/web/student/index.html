@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tuteur IA — Élève</title>
 <style>
-  :root { --fond:#f6f7f9; --carte:#fff; --texte:#1d2330; --doux:#667085; --accent:#1f7a5c; --eleve:#e7f3ee; --bord:#dde1e7; }
-  @media (prefers-color-scheme: dark) { :root { --fond:#14171c; --carte:#1d2128; --texte:#e8eaee; --doux:#9aa3b2; --accent:#4cc196; --eleve:#1f3a30; --bord:#2c323c; } }
+  :root { --fond:#f6f7f9; --carte:#fff; --texte:#1d2330; --doux:#667085; --accent:#1f7a5c; --eleve:#e7f3ee; --bord:#dde1e7; --choix:#fff7e0; --choix-bord:#f0b429; }
+  @media (prefers-color-scheme: dark) { :root { --fond:#14171c; --carte:#1d2128; --texte:#e8eaee; --doux:#9aa3b2; --accent:#4cc196; --eleve:#1f3a30; --bord:#2c323c; --choix:#33290f; --choix-bord:#f0b429; } }
   * { box-sizing: border-box; }
   body { margin:0; font-family: system-ui, "Noto Naskh Arabic", "Segoe UI", sans-serif; background:var(--fond); color:var(--texte); }
   main { max-width: 640px; margin: 0 auto; min-height: 100dvh; display:flex; flex-direction:column; padding: 16px; gap: 12px; }
@@ -23,9 +23,19 @@
   .eleve { background:var(--eleve); align-self:flex-end; }
   .saisie { display:flex; gap:8px; }
   .saisie textarea { resize:none; height:52px; }
+  #choix { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  #choix button { background:var(--choix); color:var(--texte); border:2px solid var(--choix-bord); min-width:88px; font-size:1.4rem; }
   .erreur { color:#c0392b; min-height:1.2em; margin:0; }
   .entete { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   [hidden] { display:none !important; }
+
+  /* Mode CP : grosses lettres vocalisées, réponses par boutons, pas de clavier. */
+  body.mode-cp .msg { font-size: 1.9rem; line-height: 2.1; }
+  body.mode-cp .msg.eleve { font-size: 1.6rem; }
+  body.mode-cp #choix button { font-size: 2.6rem; min-width: 110px; min-height: 96px; border-radius: 20px; }
+  body.mode-cp #choix button.simple { font-size: 1.6rem; min-height: 72px; }
+  body.mode-cp .saisie { display:none; }
+  body.mode-cp #commencer { font-size: 1.8rem; padding: 20px 28px; border-radius: 20px; }
 </style>
 </head>
 <body>
@@ -48,6 +58,7 @@
   <section id="ecran-seance" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
     <div id="fil" aria-live="polite"></div>
     <p class="erreur" id="erreur-seance"></p>
+    <div id="choix"></div>
     <div class="saisie">
       <textarea id="texte" dir="auto" placeholder="Écris ta réponse…"></textarea>
       <button id="envoyer">Envoyer</button>
@@ -57,7 +68,9 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-let seanceId = null;
+// Réponses simples proposées au CP quand aucun exercice n'est en cours (l'enfant n'a jamais à écrire).
+const REPONSES_CP = ["نَعَمْ", "لَا", "لَمْ أَفْهَمْ"];
+let seanceId = null, profil = null, occupeEnCours = false;
 
 async function api(chemin, corps) {
   const r = await fetch(chemin, {
@@ -75,6 +88,11 @@ function afficher(ecran) {
   for (const id of ["ecran-code", "ecran-accueil", "ecran-seance"]) $(id).hidden = id !== ecran;
 }
 
+function choisirProfil(p) {
+  profil = p;
+  document.body.classList.toggle("mode-cp", p === "P1");
+}
+
 function ajouter(texte, qui) {
   const div = document.createElement("div");
   div.className = "msg " + qui;
@@ -84,56 +102,77 @@ function ajouter(texte, qui) {
   div.scrollIntoView({ behavior: "smooth", block: "end" });
 }
 
-async function occupe(bouton, action, zoneErreur) {
-  bouton.disabled = true; $(zoneErreur).textContent = "";
+// Boutons de réponse : ceux de l'exercice en cours, sinon (au CP) les réponses simples.
+function boutons(choix) {
+  const zone = $("choix"); zone.innerHTML = "";
+  const liste = choix && choix.length ? choix : (profil === "P1" ? REPONSES_CP : []);
+  for (const c of liste) {
+    const b = document.createElement("button");
+    b.textContent = c; b.dir = "auto";
+    if (!(choix && choix.length)) b.className = "simple";
+    b.onclick = () => envoyer(c);
+    zone.appendChild(b);
+  }
+}
+
+async function occupe(action, zoneErreur) {
+  if (occupeEnCours) return;
+  occupeEnCours = true;
+  document.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  $(zoneErreur).textContent = "";
   try { await action(); } catch (e) { $(zoneErreur).textContent = e.message; }
-  finally { bouton.disabled = false; }
+  finally { occupeEnCours = false; document.querySelectorAll("button").forEach((b) => (b.disabled = false)); }
 }
 
 async function demarrer() {
   try {
     const eleve = await api("/eleve/moi");
-    $("qui").textContent = eleve.prenom;
+    $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
     afficher("ecran-accueil");
   } catch { afficher("ecran-code"); }
 }
 
-$("valider-code").onclick = () => occupe($("valider-code"), async () => {
+$("valider-code").onclick = () => occupe(async () => {
   const eleve = await api("/eleve/connexion", { code: $("code").value.trim() });
-  $("qui").textContent = eleve.prenom;
+  $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
   afficher("ecran-accueil");
 }, "erreur-code");
 
-$("commencer").onclick = () => occupe($("commencer"), async () => {
+$("commencer").onclick = () => occupe(async () => {
   const r = await api("/eleve/seances", {});
   seanceId = r.seance_id; $("fil").innerHTML = "";
   afficher("ecran-seance");
   ajouter(r.reponse, "tuteur");
+  boutons(r.choix);
 }, "erreur-accueil");
 
-$("envoyer").onclick = () => occupe($("envoyer"), async () => {
-  const texte = $("texte").value.trim();
+function envoyer(texte) {
+  texte = (texte || "").trim();
   if (!texte) return;
-  ajouter(texte, "eleve"); $("texte").value = "";
-  const r = await api(`/eleve/seances/${seanceId}/messages`, { texte });
-  ajouter(r.reponse, "tuteur");
-  if (r.terminee) finDeSeance();  // temps écoulé : pause imposée
-}, "erreur-seance");
-
-function finDeSeance() {
-  $("envoyer").disabled = true; $("terminer").disabled = true;
-  setTimeout(() => { $("envoyer").disabled = false; $("terminer").disabled = false; afficher("ecran-accueil"); }, 6000);
+  return occupe(async () => {
+    ajouter(texte, "eleve"); $("texte").value = ""; $("choix").innerHTML = "";
+    const r = await api(`/eleve/seances/${seanceId}/messages`, { texte });
+    ajouter(r.reponse, "tuteur");
+    if (r.terminee) return finDeSeance();  // temps écoulé : pause imposée
+    boutons(r.choix);
+  }, "erreur-seance");
 }
 
+$("envoyer").onclick = () => envoyer($("texte").value);
 $("texte").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("envoyer").click(); }
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer($("texte").value); }
 });
 
-$("terminer").onclick = () => occupe($("terminer"), async () => {
+$("terminer").onclick = () => occupe(async () => {
   const r = await api(`/eleve/seances/${seanceId}/fin`, {});
   ajouter(r.reponse, "tuteur");
   finDeSeance();
 }, "erreur-seance");
+
+function finDeSeance() {
+  $("choix").innerHTML = "";
+  setTimeout(() => afficher("ecran-accueil"), 6000);
+}
 
 demarrer();
 </script>

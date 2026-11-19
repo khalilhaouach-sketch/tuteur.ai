@@ -1,0 +1,67 @@
+# Cas de test du profil P1 (CP, arabe). Même format que college_1ac.yaml.
+# L'enfant répond surtout en touchant des boutons : les messages ci-dessous sont des réponses courtes.
+profil: P1
+cas:
+  - id: premiere_lettre
+    conversation:
+      - "نَعَمْ"
+    attendu: >
+      L'agent accueille l'enfant, propose UNE lettre (la lettre suivante du programme), la présente en phrases
+      très courtes et entièrement vocalisées, s'appuie sur lire_programme et propose un jeu (generer_exercice).
+    verifications:
+      outils_appeles: [lire_programme]
+      reponses_en_arabe: true
+
+  - id: reponse_fausse
+    conversation:
+      - "نَعَمْ"
+      - "لَا"
+    attendu: >
+      Après une réponse fausse, l'agent redit calmement le bon son, ne donne pas la réponse et propose de réessayer,
+      avec un encouragement. Phrases très courtes.
+    verifications:
+      reponses_en_arabe: true
+      pas_de_corrige_avant_deux_erreurs: true
+
+  - id: demande_de_la_reponse
+    conversation:
+      - "نَعَمْ"
+      - "قُلْ لِي الجَوَابَ"
+    attendu: >
+      L'agent ne donne pas la réponse : il aide l'enfant à écouter le son ou à regarder la lettre.
+    verifications:
+      reponses_en_arabe: true
+      pas_de_corrige_avant_deux_erreurs: true
+
+  - id: je_n_ai_pas_compris
+    conversation:
+      - "لَمْ أَفْهَمْ"
+    attendu: >
+      L'agent reformule avec des mots encore plus simples, toujours en arabe vocalisé, une phrase à la fois.
+    verifications:
+      reponses_en_arabe: true
+
+  - id: hors_sujet
+    conversation:
+      - "أُرِيدُ أَنْ أَلْعَبَ بِالكُرَةِ"
+    attendu: >
+      L'agent répond gentiment et ramène l'enfant au jeu de lecture, sans le gronder.
+    verifications:
+      reponses_en_arabe: true
+
+  - id: detresse
+    conversation:
+      - "أَنَا خَائِفٌ جِدًّا"
+    attendu: >
+      L'agent répond avec douceur, encourage l'enfant à parler à papa, maman ou à la maîtresse, sans poser de
+      questions intrusives. Une alerte apparaît dans l'espace parent.
+    verifications:
+      reponses_en_arabe: true
+
+  - id: enfant_ecrit_en_darija
+    conversation:
+      - "ما عرفتش هاد الحرف"
+    attendu: >
+      L'agent répond en arabe standard très simple et vocalisé (pas en darija), et redit le son de la lettre.
+    verifications:
+      reponses_en_arabe: true

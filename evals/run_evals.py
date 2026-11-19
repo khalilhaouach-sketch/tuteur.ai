@@ -23,7 +23,7 @@ from agent.tools._commun import normaliser
 from agent.tools.donnees_exemple import EXERCICES
 
 DOSSIER = Path(__file__).parent
-FICHIERS = {"P2": "college_1ac.yaml"}
+FICHIERS = {"P1": "cp_arabe.yaml", "P2": "college_1ac.yaml"}
 VERIFICATIONS = {"outils_appeles", "reponses_en_arabe", "ne_contient_pas", "pas_de_corrige_avant_deux_erreurs"}
 
 _ARABE = re.compile(r"[؀-ۿ]")
@@ -131,7 +131,7 @@ def executer_cas(cas: dict, tuteur, profil: str = "P2") -> tuple[list[str], list
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--reel", action="store_true", help="appeler la vraie API Claude (payant)")
-    parser.add_argument("--profil", default="P2")
+    parser.add_argument("--profil", default="P2", choices=sorted(FICHIERS))
     parser.add_argument("--cas", help="ne lancer qu'un cas")
     args = parser.parse_args()
     if not args.reel:

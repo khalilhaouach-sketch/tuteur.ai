@@ -177,16 +177,12 @@ def test_seance_reservee_a_son_eleve(client, appareil_eleve, eleve_connecte, fau
     assert appareil_eleve.post("/eleve/seances/999/messages", json={"texte": "x"}).status_code == 404
 
 
-def test_profil_pas_encore_disponible(client, appareil_eleve, faux_tuteur):
-    from tests.conftest import inscrire
-
-    inscrire(client)
-    eleve = client.post("/eleves", json={"prenom": "Adam", "profil": "P1"}).json()
-    code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
-    appareil_eleve.post("/eleve/connexion", json={"code": code})
-    faux_tuteur([])
-    assert appareil_eleve.post("/eleve/seances").status_code == 400
-
+def test_prompt_cp_identique_a_spec():
+    spec = Path("SPEC.md").read_text(encoding="utf-8")
+    blocs = re.findall(r"```\n(.*?)```", spec, re.S)
+    socle = next(b for b in blocs if b.startswith("Tu es un professeur"))
+    p1 = next(b for b in blocs if "PROFIL : élève de CP" in b).replace("[SOCLE COMMUN]\n\n", "")
+    assert core.charger_prompt("P1") == socle.strip() + "\n\n" + p1.strip() + "\n"
 
 def test_rapports_reserves_au_parent(client, appareil_eleve, eleve_connecte):
     from tests.conftest import inscrire
@@ -299,7 +295,7 @@ def test_generer_exercice_adapte_et_sans_corrige(client, appareil_eleve, eleve_c
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     ex = executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 2})
-    assert ex["exercice_id"] == "mudari3-2" and set(ex) == {"exercice_id", "notion", "difficulte", "enonce", "erreurs_recentes"}
+    assert ex["exercice_id"] == "mudari3-2" and set(ex) == {"exercice_id", "notion", "difficulte", "enonce", "choix", "erreurs_recentes"}
     executer(ctx, "corriger", {"exercice_id": "mudari3-2", "reponse": "الفتحة"})
     executer(ctx, "corriger", {"exercice_id": "mudari3-2", "reponse": "الضمة"})
     suivant = executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 2})

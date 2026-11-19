@@ -18,7 +18,7 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
   (interface élève : http://localhost:8000/ ; page de test de l'API : http://localhost:8000/docs)
 - Lancer les tests (sans appel à l'API Claude) : `python3 -m pytest`
 - Réindexer docs/ à la main : `python3 -m rag.ingest` (fait aussi à chaque démarrage de l'API)
-- Lancer les evals sur la vraie API (payant) : `python3 -m evals.run_evals --reel`
+- Lancer les evals sur la vraie API (payant) : `python3 -m evals.run_evals --reel --profil P2` (et `--profil P1` pour le CP)
 - Dans l'environnement cloud de Claude Code, ne jamais appeler la vraie API : utiliser le faux client de `tests/faux_claude.py`.
 
 Variables d'environnement :

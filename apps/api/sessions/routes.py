@@ -1,5 +1,6 @@
 """Séances de travail de l'élève avec l'agent tuteur."""
 
+import json
 from functools import lru_cache
 
 import anthropic
@@ -58,6 +59,27 @@ def _seance_ouverte(db, seance_id: int, eleve_id: int):
     return seance
 
 
+def choix_en_cours(db, seance_id: int) -> list[str]:
+    """Choix de l'exercice en cours (boutons du CP) : ceux du dernier exercice proposé,
+    tant qu'il n'est pas terminé (réussi, ou expliqué après deux erreurs)."""
+    (journal,) = db.execute("SELECT journal FROM seances WHERE id = ?", (seance_id,)).fetchone()
+    for message in reversed(json.loads(journal)):
+        if message["role"] != "user" or not isinstance(message["content"], list):
+            continue
+        for bloc in reversed(message["content"]):
+            if bloc.get("type") != "tool_result" or bloc.get("is_error"):
+                continue
+            try:
+                resultat = json.loads(bloc["content"])
+            except (TypeError, json.JSONDecodeError):
+                continue
+            if resultat.get("exercice_termine"):
+                return []
+            if "choix" in resultat:
+                return resultat["choix"]
+    return []
+
+
 @router.post("/eleve/seances", status_code=status.HTTP_201_CREATED)
 def commencer(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db), tuteur=Depends(get_tuteur)):
     (profil,) = db.execute("SELECT profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
@@ -80,7 +102,7 @@ def commencer(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db), tuteu
         reponse = tuteur.ouvrir_seance(db, eleve_id, seance_id)
     except TuteurIndisponible:
         raise _indisponible()
-    return {"seance_id": seance_id, "reponse": reponse}
+    return {"seance_id": seance_id, "reponse": reponse, "choix": choix_en_cours(db, seance_id), "profil": profil}
 
 
 @router.post("/eleve/seances/{seance_id}/messages")
@@ -101,9 +123,10 @@ def envoyer(
     if nombre >= MAX_MESSAGES_PAR_SEANCE * 3:
         raise HTTPException(status.HTTP_409_CONFLICT, "Séance trop longue : termine-la et fais une pause.")
     try:
-        return {"reponse": tuteur.repondre(db, eleve_id, seance_id, message.texte), "terminee": False}
+        reponse = tuteur.repondre(db, eleve_id, seance_id, message.texte)
     except TuteurIndisponible:
         raise _indisponible()
+    return {"reponse": reponse, "choix": choix_en_cours(db, seance_id), "terminee": False}
 
 
 @router.post("/eleve/seances/{seance_id}/fin")
