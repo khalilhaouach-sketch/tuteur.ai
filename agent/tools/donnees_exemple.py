@@ -1,7 +1,7 @@
 """Petit jeu de données d'exemple pour le profil P2 (1AC, arabe).
 
 PROVISOIRE : banque d'exercices d'exemple sur trois leçons du programme de 1AC
-(voir docs/programmes/1ac_arabe.md). Les explications viennent de docs/ (lire_programme).
+(voir docs/programmes/1ac_arabe.md). Les explications des 23 leçons viennent de docs/cours/ (lire_programme).
 Le contenu ci-dessous doit être relu par le professeur.
 """
 

@@ -58,7 +58,7 @@ def test_passages_trop_longs_recoupes():
 
 def test_niveau_deduit_du_nom():
     assert niveau_du_chemin(Path("programmes/cp_arabe.md")) == "P1"
-    assert niveau_du_chemin(Path("cours/1ac_exemples.md")) == "P2"
+    assert niveau_du_chemin(Path("cours/1ac_dawra1.md")) == "P2"
     assert niveau_du_chemin(Path("cours/P2/redaction.md")) == "P2"
     assert niveau_du_chemin(Path("cours/2ac_ancien.md")) == "tous"  # niveau abandonné
     assert niveau_du_chemin(Path("pedagogie.md")) == "tous"
@@ -80,7 +80,7 @@ def test_trois_notions_du_cp(base_indexee, question, section):
 
 def test_notion_1ac(base_indexee):
     resultats = chercher(base_indexee, "والميزانُ الصَّرْفِيُّ", "P2")
-    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — الميزان الصرفي"
+    assert resultats[0]["reference"] == "docs/cours/1ac_dawra1.md — الميزان الصرفي والمجرد والمزيد"
     assert "الفاء والعين واللام" in resultats[0]["texte"]
 
 
@@ -118,7 +118,7 @@ def test_document_word(base, tmp_path):
 def test_lire_programme_cite_ses_sources(base_indexee):
     ctx = Contexte(db=base_indexee, eleve_id=1, seance_id=None, profil="P2")
     sortie = executer(ctx, "lire_programme", {"notion": "إعراب الفعل المضارع"})
-    assert sortie["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — إعراب الفعل المضارع"
+    assert sortie["passages"][0]["reference"].startswith("docs/cours/1ac_dawra1.md — إعراب الفعل المضارع")
 
 
 def test_lire_programme_sans_resultat(base_indexee):
@@ -130,5 +130,25 @@ def test_lire_programme_sans_resultat(base_indexee):
 def test_le_cours_passe_avant_la_liste_du_programme(base_indexee):
     # Le titre de section pèse plus : le cours « إعراب الفعل المضارع » passe devant la liste des leçons.
     resultats = chercher(base_indexee, "إعراب الفعل المضارع", "P2")
-    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — إعراب الفعل المضارع"
+    assert resultats[0]["reference"].startswith("docs/cours/1ac_dawra1.md — إعراب الفعل المضارع")
     assert any("1ac_arabe.md" in r["reference"] for r in resultats)  # le programme reste trouvable
+
+
+@pytest.mark.parametrize("question, lecon", [
+    ("الضمير المتصل", "الضمير المتصل"),
+    ("الاسم الموصول", "الاسم الموصول"),
+    ("ظن وأخواتها", "أصلهما مبتدأ وخبر"),
+    ("المبني للمجهول", "المبني للمجهول وأحكامه"),
+    ("الفعل الأجوف", "المثال والأجوف"),
+    ("جزم المضارع", "إعراب الفعل المضارع: جزمه"),
+    ("اللفيف المفروق", "اللفيف المفروق واللفيف المقرون"),
+])
+def test_lecons_de_1ac_retrouvees(base_indexee, question, lecon):
+    reference = chercher(base_indexee, question, "P2")[0]["reference"]
+    assert reference.startswith("docs/cours/1ac_dawra") and lecon in reference
+
+
+def test_les_23_lecons_de_1ac_ont_un_cours():
+    titres = [l[3:].strip() for f in ("docs/cours/1ac_dawra1.md", "docs/cours/1ac_dawra2.md")
+              for l in Path(f).read_text(encoding="utf-8").splitlines() if l.startswith("## ")]
+    assert len(titres) == 23
