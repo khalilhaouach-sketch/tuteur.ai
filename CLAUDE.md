@@ -1,7 +1,7 @@
 # Projet : tuteur IA de soutien scolaire (Maroc)
 
 ## Contexte
-Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien pour 2 profils : CP arabe (P1) et 1ʳᵉ année du collège, 1AC (P2). Matière : arabe uniquement, ni français ni darija. Public visé, pour le moment : élèves de l'enseignement **public** marocain (programme officiel du ministère et manuels du public, familles aux moyens modestes : coût faible, téléphones d'entrée de gamme, connexion mobile). Lis SPEC.md avant toute tâche.
+Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien pour 2 profils : CP arabe (P1) et 1ʳᵉ année du collège, 1AC (P2). Matière : arabe uniquement, ni français ni darija. Usage personnel : tuteur familial pour trois enfants (pas une application publique). Lis SPEC.md avant toute tâche.
 
 ## Règles
 - Langue de l'interface : français ; arabe pour les contenus d'arabe.
