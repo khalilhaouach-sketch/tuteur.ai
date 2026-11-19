@@ -1,12 +1,12 @@
 """Choisit un exercice adapté à l'élève. Le corrigé reste côté serveur (jamais envoyé au modèle)."""
 
-from agent.tools._commun import NOMS_NOTIONS, notion_id, notion_valide, schema
+from agent.tools._commun import NOMS_NOTIONS, ErreurOutil, notion_id, notion_valide, schema
 from agent.tools.donnees_exemple import NOTIONS
 
 DEFINITION = {
     "name": "generer_exercice",
     "description": (
-        "Propose un exercice sur une notion, au niveau de difficulté demandé (1 facile, 2 moyen, 3 difficile). "
+        "Propose un exercice sur une notion du niveau de l'élève, au niveau de difficulté demandé (1 facile, 2 moyen, 3 difficile). "
         "Renvoie l'énoncé à présenter tel quel à l'élève et un exercice_id à passer ensuite à corriger. "
         "Le corrigé n'est pas fourni : seul l'outil corriger le connaît. "
         "Indique aussi les erreurs récentes de l'élève sur cette notion."
@@ -24,6 +24,9 @@ DEFINITION = {
 def executer(ctx, entree: dict) -> dict:
     notion = notion_valide(entree["notion"])
     difficulte = entree["difficulte"]
+    if NOTIONS[notion]["niveau"] != ctx.profil:
+        niveau = [n for n, d in NOTIONS.items() if d["niveau"] == ctx.profil]
+        raise ErreurOutil(f"notion hors du niveau de l'élève. Notions de son niveau : {', '.join(niveau)}")
     nid = notion_id(ctx.db, notion)
 
     deja_reussis = {

@@ -30,4 +30,5 @@ Variables d'environnement :
 ## Documents (docs/)
 - Formats lus : .md, .txt, .docx. Les titres de section découpent les passages.
 - Le niveau vient du nom du fichier ou du dossier : `cp`/`p1` → P1, `1ac`/`p2` → P2, sinon tous les niveaux.
-- Banque d'exercices de 1AC : `agent/tools/exercices_1ac.yaml` (3 exercices par leçon, réponses vocalisées).
+- Banques d'exercices : `agent/tools/exercices_cp.yaml` (CP, 3 par lettre) et `agent/tools/exercices_1ac.yaml` (1AC, 3 par leçon).
+  Réponses vocalisées ; un élève ne reçoit que les exercices de son niveau.

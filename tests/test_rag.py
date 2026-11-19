@@ -67,15 +67,16 @@ def test_niveau_deduit_du_nom():
 
 # --- Recherche sur les vrais documents -----------------------------------------
 
-@pytest.mark.parametrize("question, section", [
-    ("حرف الباء", "حرف الباء (ب)"),
-    ("الثَّاء", "حرف الثاء (ث)"),
-    ("حرف الضاد", "حرف الضاد (ض)"),
+@pytest.mark.parametrize("question, lettre", [
+    ("حرف الباء", "(ب)"),
+    ("الثَّاء", "(ث)"),
+    ("حرف الضاد", "(ض)"),
 ])
-def test_trois_notions_du_cp(base_indexee, question, section):
+def test_trois_notions_du_cp(base_indexee, question, lettre):
     resultats = chercher(base_indexee, question, "P1")
-    assert section in resultats[0]["reference"]
-    assert resultats[0]["reference"].startswith("docs/programmes/cp_arabe.md")
+    # Le cours de la lettre d'abord, puis sa fiche dans le programme.
+    assert resultats[0]["reference"].startswith("docs/cours/cp_huruf.md") and lettre in resultats[0]["reference"]
+    assert any(r["reference"].startswith("docs/programmes/cp_arabe.md") and lettre in r["reference"] for r in resultats)
 
 
 def test_notion_1ac(base_indexee):
@@ -157,6 +158,7 @@ def test_les_23_lecons_de_1ac_ont_un_cours():
 def test_chaque_notion_a_exercices_a_un_cours(base_indexee):
     from agent.tools.donnees_exemple import NOTIONS
 
-    for notion in NOTIONS:
-        passages = chercher(base_indexee, notion, "P2")
-        assert passages and passages[0]["reference"].startswith("docs/cours/1ac_dawra"), notion
+    cours = {"P1": "docs/cours/cp_huruf.md", "P2": "docs/cours/1ac_dawra"}
+    for notion, d in NOTIONS.items():
+        passages = chercher(base_indexee, notion, d["niveau"])
+        assert any(r["reference"].startswith(cours[d["niveau"]]) for r in passages[:2]), notion

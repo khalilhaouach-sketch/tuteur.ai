@@ -329,13 +329,14 @@ def test_donnees_exemple_coherentes():
 def test_banque_1ac_complete():
     from agent.tools.donnees_exemple import NOTIONS
 
-    assert len(NOTIONS) == 23 and len(EXERCICES) == 69
+    par_niveau = {n: sum(1 for d in NOTIONS.values() if d["niveau"] == n) for n in ("P1", "P2")}
+    assert par_niveau == {"P1": 28, "P2": 23} and len(EXERCICES) == 3 * 51
     for notion, d in NOTIONS.items():
         assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
 
 
 def test_chaque_exercice_se_corrige_comme_prevu(client, appareil_eleve, eleve_connecte, faux_tuteur):
-    """Pour les 69 exercices : la bonne réponse est juste, chaque erreur connue reçoit son type."""
+    """Pour les 153 exercices (CP et 1AC) : la bonne réponse est juste, chaque erreur connue reçoit son type."""
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     for ex_id, (_, ex) in EXERCICES.items():
@@ -353,3 +354,29 @@ def test_chadda_oubliee_est_une_erreur():
 
     assert comparer("فَعَلَ", "فَعَّلَ", True) == "voyelles"  # lettre vocalisée, chadda oubliée
     assert comparer("فعل", "فَعَّلَ", True) == "a_vocaliser"  # aucune voyelle : on redemande
+
+
+def test_exercices_limites_au_niveau_de_l_eleve(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)  # élève de 1AC (P2)
+    try:
+        executer(ctx, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})
+        assert False, "un exercice de CP a été proposé à un élève de 1AC"
+    except ErreurOutil as e:
+        assert "إعراب الفعل المضارع" in str(e)
+    cp = Contexte(db=ctx.db, eleve_id=eleve_connecte["id"], seance_id=s, profil="P1")
+    assert executer(cp, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})["exercice_id"] == "cp-02-1"
+
+
+def test_cp_lettre_et_voyelle(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)
+
+    def verdict(ex, rep):
+        return executer(ctx, "corriger", {"exercice_id": ex, "reponse": rep})
+
+    assert verdict("cp-02-1", "ب")["verdict"] == "juste"           # la lettre seule suffit
+    assert verdict("cp-02-1", "بِ")["verdict"] == "faux"           # mais une voyelle écrite doit être la bonne
+    assert verdict("cp-02-1", "تَ")["type_erreur"] == "خلط بين «ب» و«ت»"
+    assert verdict("cp-02-3", "بُو")["verdict"] == "juste"
+    assert verdict("cp-02-3", "بِي")["type_erreur"] == "خلط بين حروف المد"
