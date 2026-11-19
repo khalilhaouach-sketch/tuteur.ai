@@ -17,10 +17,16 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
 - Lancer l'API et l'interface élève : `python3 -m uvicorn apps.api.main:app --reload`
   (interface élève : http://localhost:8000/ ; page de test de l'API : http://localhost:8000/docs)
 - Lancer les tests (sans appel à l'API Claude) : `python3 -m pytest`
+- Réindexer docs/ à la main : `python3 -m rag.ingest` (fait aussi à chaque démarrage de l'API)
 - Lancer les evals sur la vraie API (payant) : `python3 -m evals.run_evals --reel`
 - Dans l'environnement cloud de Claude Code, ne jamais appeler la vraie API : utiliser le faux client de `tests/faux_claude.py`.
 
 Variables d'environnement :
 - `TUTEUR_DB` : chemin de la base SQLite (défaut : `data/tuteur.db`).
+- `TUTEUR_DOCS` : dossier des programmes et des cours (défaut : `docs`).
 - `ANTHROPIC_API_KEY` : clé de l'API Claude (jamais dans le code ni dans le dépôt).
 - `TUTEUR_COOKIE_SECURE` : `1` par défaut (cookies réservés à HTTPS ; localhost fonctionne aussi). Ne jamais mettre `0` en production.
+
+## Documents (docs/)
+- Formats lus : .md, .txt, .docx. Les titres de section découpent les passages.
+- Le niveau vient du nom du fichier ou du dossier : `cp`/`p1` → P1, `2ac`/`p2` → P2, `3ac`/`p3` → P3, sinon tous les niveaux.

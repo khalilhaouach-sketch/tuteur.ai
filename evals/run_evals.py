@@ -107,6 +107,9 @@ def executer_cas(cas: dict, tuteur, profil: str = "P2") -> tuple[list[str], list
         os.environ["TUTEUR_DB"] = str(Path(dossier) / "evals.db")
         db.initialiser()
         conn = db.ouvrir()
+        from rag.ingest import indexer
+
+        indexer(conn)
         maintenant = db.iso(db.maintenant())
         parent = conn.execute(
             "INSERT INTO parents (email, mot_de_passe_hash, consentement_le, cree_le) VALUES ('evals@exemple.ma', 'x', ?, ?)",

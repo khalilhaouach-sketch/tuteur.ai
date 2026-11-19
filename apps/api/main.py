@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
 from apps.api import db
+from rag.ingest import indexer
 from apps.api.auth.routes import router as auth_router
 from apps.api.sessions.routes import router as seances_router
 
@@ -17,6 +18,12 @@ PAGE_ELEVE = Path(__file__).resolve().parents[1] / "web" / "student" / "index.ht
 @asynccontextmanager
 async def demarrage(_app: FastAPI):
     db.initialiser()
+    conn = db.ouvrir()
+    try:
+        indexer(conn)  # docs/ est réindexé à chaque démarrage : l'index suit toujours les fichiers
+        conn.commit()
+    finally:
+        conn.close()
     yield
 
 

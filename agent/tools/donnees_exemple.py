@@ -1,22 +1,15 @@
 """Petit jeu de données d'exemple pour le profil P2 (2AC, arabe).
 
-PROVISOIRE : en phase 3, les extraits viendront de docs/programmes et docs/cours.
+PROVISOIRE : banque d'exercices d'exemple. Les explications viennent de docs/ (lire_programme).
 Le contenu ci-dessous doit être relu par le professeur.
 """
 
-REFERENCE = "Données d'exemple (à remplacer par les documents de docs/ en phase 3)"
-
-# Pour chaque notion : un extrait du programme et une banque d'exercices.
+# Pour chaque notion : une banque d'exercices.
 # Chaque exercice : réponses acceptées, erreurs connues (réponse -> type d'erreur),
 # un indice (après une première erreur) et une explication (après la deuxième).
 NOTIONS = {
     "الفاعل": {
         "niveau": "P2",
-        "extrait": (
-            "الفاعل اسم مرفوع يأتي بعد الفعل، ويدل على من قام بالفعل. "
-            "علامة رفعه الأصلية الضمة، وينوب عنها الواو في جمع المذكر السالم، والألف في المثنى."
-        ),
-        "exemples": ["كَتَبَ التِّلْمِيذُ الدَّرْسَ.", "نَجَحَ المُجْتَهِدُونَ."],
         "exercices": [
             {
                 "id": "fa3il-1",
@@ -53,12 +46,6 @@ NOTIONS = {
     },
     "المفعول به": {
         "niveau": "P2",
-        "extrait": (
-            "المفعول به اسم منصوب يدل على من وقع عليه فعل الفاعل. "
-            "علامة نصبه الأصلية الفتحة، وينوب عنها الياء في جمع المذكر السالم والمثنى، "
-            "والكسرة في جمع المؤنث السالم."
-        ),
-        "exemples": ["قَرَأَ أَحْمَدُ القِصَّةَ.", "رَأَيْتُ المُعَلِّمِينَ."],
         "exercices": [
             {
                 "id": "maf3oul-1",
@@ -94,11 +81,6 @@ NOTIONS = {
     },
     "كان وأخواتها": {
         "niveau": "P2",
-        "extrait": (
-            "كان وأخواتها أفعال ناسخة تدخل على الجملة الاسمية فترفع المبتدأ ويسمى اسمها، "
-            "وتنصب الخبر ويسمى خبرها. ومن أخواتها: أصبح، أمسى، أضحى، ظل، بات، صار، ليس."
-        ),
-        "exemples": ["كَانَ الجَوُّ جَمِيلًا.", "أَصْبَحَ الطَّقْسُ بَارِدًا."],
         "exercices": [
             {
                 "id": "kana-1",

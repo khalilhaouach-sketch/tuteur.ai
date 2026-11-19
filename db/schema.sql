@@ -103,3 +103,15 @@ CREATE TABLE IF NOT EXISTS essais_echoues (
     moment TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_essais_cle ON essais_echoues(cle, moment);
+
+-- Passages des programmes et des cours (docs/), reconstruits à chaque indexation (rag/ingest.py).
+CREATE TABLE IF NOT EXISTS passages (
+    id      INTEGER PRIMARY KEY,
+    source  TEXT NOT NULL,                        -- fichier, ex. docs/programmes/cp_arabe.md
+    titre   TEXT NOT NULL,                        -- titres de section, ex. « 5. Fiches › 2. حرف الباء »
+    niveau  TEXT NOT NULL CHECK (niveau IN ('P1', 'P2', 'P3', 'tous')),
+    texte   TEXT NOT NULL,
+    version TEXT NOT NULL                         -- empreinte du fichier indexé
+);
+-- Index de recherche plein texte (texte arabe normalisé : sans voyelles, sans préfixes).
+CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5(contenu);

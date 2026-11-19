@@ -50,6 +50,9 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
 
     r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "نعم"})
     assert "كَتَبَ التِّلْمِيذُ" in r.json()["reponse"]
+    # Le rappel de la notion s'appuie sur le cours, avec sa référence.
+    programme = json.loads(faux.derniers_resultats(2)[0]["content"])
+    assert programme["passages"][0]["reference"] == "docs/cours/2ac_exemples.md — الفاعل"
     # L'exercice envoyé au modèle ne contient pas le corrigé.
     exercice_envoye = json.loads(faux.derniers_resultats()[0]["content"])
     assert exercice_envoye["exercice_id"] == "fa3il-1"
