@@ -244,3 +244,8 @@ def test_schema_refuse_une_autre_matiere_que_l_arabe(client):
         assert False, "une matière autre que l'arabe a été acceptée"
     except sqlite3.IntegrityError:
         pass
+
+
+def test_seuls_les_profils_cp_et_1ac_existent(client):
+    inscrire(client)
+    assert client.post("/eleves", json={"prenom": "Yasmine", "profil": "P3"}).status_code == 422

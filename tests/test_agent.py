@@ -46,13 +46,13 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
     # La mémoire de l'élève est donnée à l'agent au début de la séance.
     ouverture = faux.appels[0]["messages"]
     assert ouverture[-1]["role"] == "system" and "Yasmine" in ouverture[-1]["content"]
-    assert faux.appels[0]["system"] == Path("agent/profiles/college_2ac.md").read_text(encoding="utf-8")
+    assert faux.appels[0]["system"] == Path("agent/profiles/college_1ac.md").read_text(encoding="utf-8")
 
     r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "نعم"})
     assert "كَتَبَ التِّلْمِيذُ" in r.json()["reponse"]
     # Le rappel de la notion s'appuie sur le cours, avec sa référence.
     programme = json.loads(faux.derniers_resultats(2)[0]["content"])
-    assert programme["passages"][0]["reference"] == "docs/cours/2ac_exemples.md — الفاعل"
+    assert programme["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — الفاعل"
     # L'exercice envoyé au modèle ne contient pas le corrigé.
     exercice_envoye = json.loads(faux.derniers_resultats()[0]["content"])
     assert exercice_envoye["exercice_id"] == "fa3il-1"
@@ -212,7 +212,7 @@ def test_prompt_p2_identique_a_spec():
     spec = Path("SPEC.md").read_text(encoding="utf-8")
     blocs = re.findall(r"```\n(.*?)```", spec, re.S)
     socle = next(b for b in blocs if b.startswith("Tu es un professeur"))
-    p2 = next(b for b in blocs if "2ᵉ année du collège. La matière" in b).replace("[SOCLE COMMUN]\n\n", "")
+    p2 = next(b for b in blocs if "1ʳᵉ année du collège. La matière" in b).replace("[SOCLE COMMUN]\n\n", "")
     assert core.charger_prompt("P2") == socle.strip() + "\n\n" + p2.strip() + "\n"
 
 

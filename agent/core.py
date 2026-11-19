@@ -19,7 +19,7 @@ MAX_TOKENS = 8000
 MAX_APPELS_PAR_TOUR = 12  # garde-fou contre une boucle d'outils sans fin
 LONGUEUR_MAX_MESSAGE = 1000
 
-PROFILS = {"P2": "college_2ac.md"}  # P3 en phase 5, P1 en phase 6
+PROFILS = {"P2": "college_1ac.md"}  # P1 (CP) en phase 5
 DOSSIER_PROFILS = Path(__file__).parent / "profiles"
 
 MESSAGE_INDISPONIBLE = "عُذْرًا، حَدَثَ خَلَلٌ. حَاوِلْ مَرَّةً أُخْرَى بَعْدَ قَلِيلٍ."

@@ -3,7 +3,7 @@
     python3 -m rag.ingest        # réindexe tout (fait aussi automatiquement au démarrage de l'API)
 
 Formats lus : .md, .txt, .docx. Le niveau d'un document se déduit de son nom ou de son dossier :
-« cp » ou « p1 » -> P1, « 2ac » ou « p2 » -> P2, « 3ac » ou « p3 » -> P3 ; sinon il sert à tous les niveaux.
+« cp » ou « p1 » -> P1, « 1ac » ou « p2 » -> P2 ; sinon il sert à tous les niveaux.
 """
 
 import hashlib
@@ -19,8 +19,7 @@ from rag.arabe import texte_indexe
 FORMATS = {".md", ".txt", ".docx"}
 TAILLE_MAX = 1500  # caractères par passage
 _NIVEAUX = [(re.compile(r"(^|[^a-z0-9])(cp|p1)([^a-z0-9]|$)"), "P1"),
-            (re.compile(r"(^|[^a-z0-9])(2ac|p2)([^a-z0-9]|$)"), "P2"),
-            (re.compile(r"(^|[^a-z0-9])(3ac|p3)([^a-z0-9]|$)"), "P3")]
+            (re.compile(r"(^|[^a-z0-9])(1ac|p2)([^a-z0-9]|$)"), "P2")]
 
 
 def dossier_docs() -> Path:

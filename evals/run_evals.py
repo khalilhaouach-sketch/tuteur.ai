@@ -23,7 +23,7 @@ from agent.tools._commun import normaliser
 from agent.tools.donnees_exemple import EXERCICES
 
 DOSSIER = Path(__file__).parent
-FICHIERS = {"P2": "college_2ac.yaml"}
+FICHIERS = {"P2": "college_1ac.yaml"}
 VERIFICATIONS = {"outils_appeles", "reponses_en_arabe", "ne_contient_pas", "pas_de_corrige_avant_deux_erreurs"}
 
 _ARABE = re.compile(r"[؀-ۿ]")

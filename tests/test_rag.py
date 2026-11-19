@@ -58,8 +58,9 @@ def test_passages_trop_longs_recoupes():
 
 def test_niveau_deduit_du_nom():
     assert niveau_du_chemin(Path("programmes/cp_arabe.md")) == "P1"
-    assert niveau_du_chemin(Path("cours/2ac_exemples.md")) == "P2"
-    assert niveau_du_chemin(Path("cours/P3/redaction.md")) == "P3"
+    assert niveau_du_chemin(Path("cours/1ac_exemples.md")) == "P2"
+    assert niveau_du_chemin(Path("cours/P2/redaction.md")) == "P2"
+    assert niveau_du_chemin(Path("cours/2ac_ancien.md")) == "tous"  # niveau abandonné
     assert niveau_du_chemin(Path("pedagogie.md")) == "tous"
     assert niveau_du_chemin(Path("cours/capitale.md")) == "tous"  # « cp » doit être un mot entier
 
@@ -77,17 +78,17 @@ def test_trois_notions_du_cp(base_indexee, question, section):
     assert resultats[0]["reference"].startswith("docs/programmes/cp_arabe.md")
 
 
-def test_notion_2ac(base_indexee):
+def test_notion_1ac(base_indexee):
     resultats = chercher(base_indexee, "والفاعلُ", "P2")
-    assert resultats[0]["reference"] == "docs/cours/2ac_exemples.md — الفاعل"
+    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — الفاعل"
     assert "اسم مرفوع" in resultats[0]["texte"]
 
 
 def test_niveau_respecte(base_indexee):
-    # Un élève de 2AC ne reçoit pas les fiches du CP, et inversement.
+    # Un élève de 1AC ne reçoit pas les fiches du CP, et inversement.
     assert all("cp_arabe" not in r["reference"] for r in chercher(base_indexee, "حرف الباء", "P2"))
     assert chercher(base_indexee, "المفعول به", "P1") == [] or all(
-        "2ac" not in r["reference"] for r in chercher(base_indexee, "المفعول به", "P1"))
+        "1ac" not in r["reference"] for r in chercher(base_indexee, "المفعول به", "P1"))
 
 
 def test_reindexation_sans_doublons(base_indexee):
@@ -105,11 +106,11 @@ def test_document_word(base, tmp_path):
            '</w:body></w:document>')
     docs = tmp_path / "docs" / "cours"
     docs.mkdir(parents=True)
-    with zipfile.ZipFile(docs / "2ac_mobtada.docx", "w") as z:
+    with zipfile.ZipFile(docs / "1ac_mobtada.docx", "w") as z:
         z.writestr("word/document.xml", xml)
     assert indexer(base, tmp_path / "docs") == 1
     r = chercher(base, "المبتدأ", "P2")
-    assert r[0]["reference"] == "docs/cours/2ac_mobtada.docx — المبتدأ والخبر"
+    assert r[0]["reference"] == "docs/cours/1ac_mobtada.docx — المبتدأ والخبر"
 
 
 # --- L'outil lire_programme ----------------------------------------------------
@@ -117,7 +118,7 @@ def test_document_word(base, tmp_path):
 def test_lire_programme_cite_ses_sources(base_indexee):
     ctx = Contexte(db=base_indexee, eleve_id=1, seance_id=None, profil="P2")
     sortie = executer(ctx, "lire_programme", {"notion": "كان وأخواتها"})
-    assert sortie["passages"][0]["reference"] == "docs/cours/2ac_exemples.md — كان وأخواتها"
+    assert sortie["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — كان وأخواتها"
 
 
 def test_lire_programme_sans_resultat(base_indexee):

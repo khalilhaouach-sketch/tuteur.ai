@@ -1,4 +1,4 @@
-"""Petit jeu de données d'exemple pour le profil P2 (2AC, arabe).
+"""Petit jeu de données d'exemple pour le profil P2 (1AC, arabe).
 
 PROVISOIRE : banque d'exercices d'exemple. Les explications viennent de docs/ (lire_programme).
 Le contenu ci-dessous doit être relu par le professeur.

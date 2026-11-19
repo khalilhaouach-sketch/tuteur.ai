@@ -1,4 +1,4 @@
-# Cours d'exemple 2AC (arabe) — PROVISOIRE
+# Cours d'exemple 1AC (arabe) — PROVISOIRE
 
 > Contenu d'exemple rédigé par Claude, à remplacer par les cours du professeur.
 

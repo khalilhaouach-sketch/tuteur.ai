@@ -65,7 +65,7 @@ class Identifiants(BaseModel):
 
 class NouvelEleve(BaseModel):
     prenom: str
-    profil: Literal["P1", "P2", "P3"]
+    profil: Literal["P1", "P2"]
 
     @field_validator("prenom")
     @classmethod

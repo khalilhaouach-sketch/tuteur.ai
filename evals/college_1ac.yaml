@@ -1,4 +1,4 @@
-# Cas de test du profil P2 (2AC, arabe).
+# Cas de test du profil P2 (1AC, arabe).
 # - conversation : ce que l'élève écrit, message par message (la séance est ouverte avant).
 # - attendu : le comportement attendu, pour la relecture humaine (à compléter par le professeur).
 # - verifications : contrôles automatiques sur les réponses de l'agent.

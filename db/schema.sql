@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS eleves (
     id        INTEGER PRIMARY KEY,
     parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
     prenom    TEXT    NOT NULL CHECK (length(prenom) BETWEEN 1 AND 30),
-    profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2', 'P3')),
+    profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- P1 : CP, P2 : 1re année collège
     cree_le   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);
@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);
 CREATE TABLE IF NOT EXISTS notions (
     id                  INTEGER PRIMARY KEY,
     matiere             TEXT NOT NULL DEFAULT 'arabe' CHECK (matiere = 'arabe'),
-    niveau              TEXT NOT NULL CHECK (niveau IN ('P1', 'P2', 'P3')),
+    niveau              TEXT NOT NULL CHECK (niveau IN ('P1', 'P2')),
     intitule            TEXT NOT NULL,
     reference_programme TEXT,                     -- lien vers le passage du programme
     UNIQUE (niveau, intitule)
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS passages (
     id      INTEGER PRIMARY KEY,
     source  TEXT NOT NULL,                        -- fichier, ex. docs/programmes/cp_arabe.md
     titre   TEXT NOT NULL,                        -- titres de section, ex. « 5. Fiches › 2. حرف الباء »
-    niveau  TEXT NOT NULL CHECK (niveau IN ('P1', 'P2', 'P3', 'tous')),
+    niveau  TEXT NOT NULL CHECK (niveau IN ('P1', 'P2', 'tous')),
     texte   TEXT NOT NULL,
     version TEXT NOT NULL                         -- empreinte du fichier indexé
 );
