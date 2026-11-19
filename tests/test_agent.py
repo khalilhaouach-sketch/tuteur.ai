@@ -226,13 +226,34 @@ def _preparer(client, faux_tuteur, appareil_eleve):
     return appareil_eleve.post("/eleve/seances").json()["seance_id"]
 
 
-def test_correction_tolere_voyelles_ponctuation_et_hamza(client, appareil_eleve, eleve_connecte, faux_tuteur):
+def test_correction_verifie_les_voyelles(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    for reponse_eleve in ["أَفْعَلَ", " افعل. ", "«أفعل»"]:
-        assert executer(ctx, "corriger", {"exercice_id": "mizan-2", "reponse": reponse_eleve})["verdict"] == "juste"
-    assert executer(ctx, "corriger", {"exercice_id": "nakira-2", "reponse": "كتاب"})["verdict"] == "faux"
-    assert normaliser("أَحْمَدُ") == normaliser("احمد")
+
+    def verdict(ex, rep):
+        return executer(ctx, "corriger", {"exercice_id": ex, "reponse": rep})
+
+    # Voyelles facultatives : absentes acceptées, mais une voyelle écrite doit être juste.
+    assert verdict("mudari3-1", "لَنْ")["verdict"] == "juste"
+    assert verdict("mudari3-2", " «الضمة». ")["verdict"] == "juste"
+    faux = verdict("mudari3-3", "حَذْفِ النُّونِ")
+    assert faux["verdict"] == "faux" and faux["type_erreur"] == "خطأ في الشكل (الحركات)"
+
+    # Voyelles obligatoires (le وزن) : une voyelle fausse est une erreur...
+    faux = verdict("mizan-1", "فَعِلَ")
+    assert faux["verdict"] == "faux" and faux["type_erreur"] == "خطأ في الشكل (الحركات)"
+    # ... et une réponse sans voyelles est redemandée, sans compter d'erreur.
+    nb = ctx.db.execute("SELECT COUNT(*) FROM tentatives").fetchone()[0]
+    assert verdict("mizan-2", "افعل")["verdict"] == "a_vocaliser"
+    assert ctx.db.execute("SELECT COUNT(*) FROM tentatives").fetchone()[0] == nb
+    # Hamza tolérée, soukoun et voyelle de l'alif de liaison facultatifs.
+    assert verdict("mizan-2", "اَفْعَلَ")["verdict"] == "juste"
+    assert verdict("mizan-3", "استَفعَلَ")["verdict"] == "juste"
+
+    # Erreur de voyelle connue : le تنوين gardé avec «ال».
+    tanwin = verdict("nakira-2", "الكِتَابٌ")
+    assert tanwin["type_erreur"] == "إبقاء التنوين مع «ال» التعريف"
+    assert verdict("nakira-2", "الكِتَابُ")["verdict"] == "juste"
 
 
 def test_deuxieme_erreur_donne_l_explication(client, appareil_eleve, eleve_connecte, faux_tuteur):
@@ -295,7 +316,11 @@ def test_outils_limites_a_l_eleve_de_la_seance(client, appareil_eleve, eleve_con
 
 
 def test_donnees_exemple_coherentes():
+    from agent.tools._commun import a_des_voyelles, comparer
+
     for ex_id, (notion, ex) in EXERCICES.items():
         assert ex["reponses"] and ex["indice"] and ex["explication"], ex_id
-        bonnes = {normaliser(r) for r in ex["reponses"]}
-        assert not bonnes & {normaliser(e) for e in ex["erreurs"]}, ex_id
+        for r in ex["reponses"]:
+            assert a_des_voyelles(r), (ex_id, r)  # réponses de référence vocalisées
+        for erreur in ex["erreurs"]:
+            assert all(comparer(erreur, r, False) != "juste" for r in ex["reponses"]), (ex_id, erreur)
