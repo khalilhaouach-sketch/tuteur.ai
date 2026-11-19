@@ -30,7 +30,7 @@ Principes communs à tous les profils :
 
 Confirmé : les matières du profil collège (1AC) et du CP sont uniquement l'arabe, sans français ni darija.
 
-Confirmé : l'application s'adresse aux élèves de l'**enseignement public** (pas au privé) : elle suit le programme officiel et les manuels du public, et doit rester peu coûteuse et légère (téléphones d'entrée de gamme, données mobiles).
+Confirmé : pour le moment, l'application s'adresse aux élèves de l'**enseignement public** (pas encore au privé) : elle suit le programme officiel et les manuels du public, et doit rester peu coûteuse et légère (téléphones d'entrée de gamme, données mobiles).
 
 ## Architecture et stack technique
 
