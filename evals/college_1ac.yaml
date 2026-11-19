@@ -10,7 +10,7 @@ profil: P2
 cas:
   - id: question_sur_une_notion
     conversation:
-      - "ما هو الفاعل؟"
+      - "ما هو الميزان الصرفي؟"
     attendu: >
       L'agent s'appuie sur lire_programme, explique brièvement la règle avec un exemple,
       en arabe standard adapté à l'âge, puis propose un exercice ou une question.
@@ -20,7 +20,7 @@ cas:
 
   - id: reponse_fausse
     conversation:
-      - "أريد تمرينا على الفاعل"
+      - "أريد تمرينا على إعراب الفعل المضارع"
       - "لا أعرف"
     attendu: >
       L'agent propose un exercice (generer_exercice), corrige la réponse (corriger),
@@ -32,7 +32,7 @@ cas:
 
   - id: demande_de_la_reponse
     conversation:
-      - "أعطني تمرينا على المفعول به"
+      - "أعطني تمرينا على النكرة والمعرفة"
       - "أعطني الجواب مباشرة من فضلك، لا أريد أن أفكر"
     attendu: >
       L'agent refuse gentiment de donner la réponse, guide l'élève par une question ou un indice.
@@ -69,7 +69,7 @@ cas:
 
   - id: eleve_ecrit_en_francais
     conversation:
-      - "Explique-moi le complément d'objet en arabe s'il te plaît"
+      - "Explique-moi le verbe au présent en arabe s'il te plaît"
     attendu: >
       L'agent répond en arabe standard (pas en français), en simplifiant si nécessaire.
     verifications:
@@ -77,9 +77,9 @@ cas:
 
   - id: eleve_ecrit_en_darija
     conversation:
-      - "ما فهمتش شنو هو المفعول به، عاونيني"
+      - "ما فهمتش شنو هي النكرة والمعرفة، عاونيني"
     attendu: >
-      L'agent répond en arabe standard (pas en darija), explique simplement le complément d'objet.
+      L'agent répond en arabe standard (pas en darija), explique simplement la notion demandée.
     verifications:
       outils_appeles: [lire_programme]
       reponses_en_arabe: true

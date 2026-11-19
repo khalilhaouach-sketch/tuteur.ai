@@ -10,7 +10,7 @@ def chercher(db: sqlite3.Connection, question: str, niveau: str, limite: int = 3
     if not requete:
         return []
     lignes = db.execute(
-        "SELECT p.source, p.titre, p.texte, bm25(passages_fts, 1.0) AS score FROM passages_fts"
+        "SELECT p.source, p.titre, p.texte, bm25(passages_fts, 5.0, 1.0) AS score FROM passages_fts"
         " JOIN passages p ON p.id = passages_fts.rowid"
         " WHERE passages_fts MATCH ? AND p.niveau IN (?, 'tous')"
         " ORDER BY score LIMIT ?",

@@ -27,10 +27,10 @@ def test_controles_detectent_un_bon_comportement(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "x.db"))
     tuteur = Tuteur(FauxClient([
         reponse(texte("مرحبًا يا ياسمين")),
-        reponse(outil("generer_exercice", notion="الفاعل", difficulte=1)),
-        reponse(texte("حدد الفاعل في الجملة: كتب التلميذ الدرس.")),
-        reponse(outil("corriger", exercice_id="fa3il-1", reponse="لا أعرف")),
-        reponse(texte("لا بأس! فكّر: من الذي قام بالكتابة؟")),
+        reponse(outil("generer_exercice", notion="إعراب الفعل المضارع", difficulte=1)),
+        reponse(texte("ما الحرف الذي نصب الفعل المضارع في الجملة: لن يتأخر التلميذ؟")),
+        reponse(outil("corriger", exercice_id="mudari3-1", reponse="لا أعرف")),
+        reponse(texte("لا بأس! فكّر: ما الكلمة التي جاءت قبل الفعل مباشرة؟")),
     ]))
     reponses, journal = executer_cas(_cas("reponse_fausse"), tuteur)
     assert all(ok for _, ok, _ in verifier(_cas("reponse_fausse"), reponses, journal))
@@ -40,9 +40,9 @@ def test_controles_detectent_une_fuite_du_corrige(tmp_path, monkeypatch):
     monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "x.db"))
     tuteur = Tuteur(FauxClient([
         reponse(texte("مرحبًا")),
-        reponse(outil("generer_exercice", notion="المفعول به", difficulte=1)),
-        reponse(texte("ما المفعول به في: قرأ أحمد القصة؟")),
-        reponse(texte("الجواب هو القِصَّةَ.")),  # mauvais comportement : donne la réponse
+        reponse(outil("generer_exercice", notion="النكرة والمعرفة", difficulte=1)),
+        reponse(texte("هل كلمة «مَدِينَةٌ» نكرة أم معرفة؟")),
+        reponse(texte("الجواب هو: نَكِرَةٌ.")),  # mauvais comportement : donne la réponse
     ]))
     reponses, journal = executer_cas(_cas("demande_de_la_reponse"), tuteur)
     echecs = [c for c, ok, _ in verifier(_cas("demande_de_la_reponse"), reponses, journal) if not ok]

@@ -89,7 +89,9 @@ def indexer(db: sqlite3.Connection, dossier: Path | None = None) -> int:
     """Reconstruit l'index à partir de docs/. Renvoie le nombre de passages indexés."""
     dossier = dossier or dossier_docs()
     db.execute("DELETE FROM passages")
-    db.execute("DELETE FROM passages_fts")
+    # Table recréée à chaque fois : une base créée avec une ancienne version du schéma reste à jour.
+    db.execute("DROP TABLE IF EXISTS passages_fts")
+    db.execute("CREATE VIRTUAL TABLE passages_fts USING fts5(titre, contenu)")
     total = 0
     if not dossier.exists():
         return 0
@@ -104,8 +106,8 @@ def indexer(db: sqlite3.Connection, dossier: Path | None = None) -> int:
                 (source, titre, niveau, contenu, empreinte),
             ).lastrowid
             db.execute(
-                "INSERT INTO passages_fts (rowid, contenu) VALUES (?, ?)",
-                (pid, texte_indexe(titre + "\n" + contenu)),
+                "INSERT INTO passages_fts (rowid, titre, contenu) VALUES (?, ?, ?)",
+                (pid, texte_indexe(titre), texte_indexe(contenu)),
             )
             total += 1
     return total

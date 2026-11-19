@@ -79,16 +79,16 @@ def test_trois_notions_du_cp(base_indexee, question, section):
 
 
 def test_notion_1ac(base_indexee):
-    resultats = chercher(base_indexee, "والفاعلُ", "P2")
-    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — الفاعل"
-    assert "اسم مرفوع" in resultats[0]["texte"]
+    resultats = chercher(base_indexee, "والميزانُ الصَّرْفِيُّ", "P2")
+    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — الميزان الصرفي"
+    assert "الفاء والعين واللام" in resultats[0]["texte"]
 
 
 def test_niveau_respecte(base_indexee):
     # Un élève de 1AC ne reçoit pas les fiches du CP, et inversement.
     assert all("cp_arabe" not in r["reference"] for r in chercher(base_indexee, "حرف الباء", "P2"))
-    assert chercher(base_indexee, "المفعول به", "P1") == [] or all(
-        "1ac" not in r["reference"] for r in chercher(base_indexee, "المفعول به", "P1"))
+    assert chercher(base_indexee, "النكرة والمعرفة", "P1") == [] or all(
+        "1ac" not in r["reference"] for r in chercher(base_indexee, "النكرة والمعرفة", "P1"))
 
 
 def test_reindexation_sans_doublons(base_indexee):
@@ -117,11 +117,18 @@ def test_document_word(base, tmp_path):
 
 def test_lire_programme_cite_ses_sources(base_indexee):
     ctx = Contexte(db=base_indexee, eleve_id=1, seance_id=None, profil="P2")
-    sortie = executer(ctx, "lire_programme", {"notion": "كان وأخواتها"})
-    assert sortie["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — كان وأخواتها"
+    sortie = executer(ctx, "lire_programme", {"notion": "إعراب الفعل المضارع"})
+    assert sortie["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — إعراب الفعل المضارع"
 
 
 def test_lire_programme_sans_resultat(base_indexee):
     ctx = Contexte(db=base_indexee, eleve_id=1, seance_id=None, profil="P2")
     sortie = executer(ctx, "lire_programme", {"notion": "البلاغة والعروض"})
     assert sortie["passages"] == [] and "Aucun passage" in sortie["message"]
+
+
+def test_le_cours_passe_avant_la_liste_du_programme(base_indexee):
+    # Le titre de section pèse plus : le cours « إعراب الفعل المضارع » passe devant la liste des leçons.
+    resultats = chercher(base_indexee, "إعراب الفعل المضارع", "P2")
+    assert resultats[0]["reference"] == "docs/cours/1ac_exemples.md — إعراب الفعل المضارع"
+    assert any("1ac_arabe.md" in r["reference"] for r in resultats)  # le programme reste trouvable

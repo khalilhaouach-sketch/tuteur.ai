@@ -21,21 +21,21 @@ from tests.faux_claude import outil, reponse, texte
 def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
     faux = faux_tuteur([
         # 1. Accueil
-        reponse(texte("مرحبًا يا ياسمين! هل نبدأ بدرس الفاعل؟")),
+        reponse(texte("مرحبًا يا ياسمين! هل نبدأ بدرس إعراب الفعل المضارع؟")),
         # 2. L'élève accepte : rappel de la notion puis exercice
-        reponse(outil("lire_programme", notion="الفاعل")),
-        reponse(outil("generer_exercice", notion="الفاعل", difficulte=1)),
-        reponse(texte("حَدِّدِ الفاعل في الجملة: كَتَبَ التِّلْمِيذُ الدَّرْسَ.")),
+        reponse(outil("lire_programme", notion="إعراب الفعل المضارع")),
+        reponse(outil("generer_exercice", notion="إعراب الفعل المضارع", difficulte=1)),
+        reponse(texte("ما الحرف الذي نصب الفعل المضارع في الجملة: لَنْ يَتَأَخَّرَ التِّلْمِيذُ؟")),
         # 3. Réponse fausse : correction, indice
-        reponse(outil("corriger", exercice_id="fa3il-1", reponse="الدَّرْسَ")),
-        reponse(texte("ليس تمامًا. مَنِ الذي كَتَبَ؟")),
+        reponse(outil("corriger", exercice_id="mudari3-1", reponse="التِّلْمِيذُ")),
+        reponse(texte("ليس تمامًا. ما الحرف الذي جاء قبل الفعل؟")),
         # 4. Deuxième essai juste : progression puis révision
-        reponse(outil("corriger", exercice_id="fa3il-1", reponse="التلميذ")),
-        reponse(outil("enregistrer_progression", exercice_id="fa3il-1")),
-        reponse(outil("planifier_revision", notion="الفاعل")),
+        reponse(outil("corriger", exercice_id="mudari3-1", reponse="لن")),
+        reponse(outil("enregistrer_progression", exercice_id="mudari3-1")),
+        reponse(outil("planifier_revision", notion="إعراب الفعل المضارع")),
         reponse(texte("أحسنت! الجواب صحيح.")),
         # 5. Fin de séance : récapitulatif
-        reponse(texte("اليوم تعلمنا الفاعل. أحسنت يا ياسمين!")),
+        reponse(texte("اليوم تعلمنا إعراب الفعل المضارع. أحسنت يا ياسمين!")),
     ])
 
     r = appareil_eleve.post("/eleve/seances")
@@ -49,22 +49,22 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
     assert faux.appels[0]["system"] == Path("agent/profiles/college_1ac.md").read_text(encoding="utf-8")
 
     r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "نعم"})
-    assert "كَتَبَ التِّلْمِيذُ" in r.json()["reponse"]
+    assert "لَنْ يَتَأَخَّرَ" in r.json()["reponse"]
     # Le rappel de la notion s'appuie sur le cours, avec sa référence.
     programme = json.loads(faux.derniers_resultats(2)[0]["content"])
-    assert programme["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — الفاعل"
+    assert programme["passages"][0]["reference"] == "docs/cours/1ac_exemples.md — إعراب الفعل المضارع"
     # L'exercice envoyé au modèle ne contient pas le corrigé.
     exercice_envoye = json.loads(faux.derniers_resultats()[0]["content"])
-    assert exercice_envoye["exercice_id"] == "fa3il-1"
+    assert exercice_envoye["exercice_id"] == "mudari3-1"
     assert "reponses" not in exercice_envoye and "التلميذ" not in json.dumps(exercice_envoye, ensure_ascii=False).replace("التِّلْمِيذُ", "")
 
-    appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "الدَّرْسَ"})
+    appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "التِّلْمِيذُ"})
     correction = json.loads(faux.derniers_resultats()[0]["content"])
     assert correction["verdict"] == "faux"
-    assert correction["type_erreur"] == "خلط بين الفاعل والمفعول به"
+    assert correction["type_erreur"] == "خلط بين الناصب والفاعل"
     assert "indice" in correction and "bonne_reponse" not in correction
 
-    r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "التلميذ"})
+    r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "لن"})
     assert r.json()["reponse"] == "أحسنت! الجواب صحيح."
 
     r = appareil_eleve.post(f"/eleve/seances/{seance_id}/fin")
@@ -75,8 +75,8 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
     conn = db.ouvrir()
     tentatives = conn.execute("SELECT reponse, verdict, type_erreur FROM tentatives ORDER BY id").fetchall()
     assert [tuple(t) for t in tentatives] == [
-        ("الدَّرْسَ", "faux", "خلط بين الفاعل والمفعول به"),
-        ("التلميذ", "juste", None),
+        ("التِّلْمِيذُ", "faux", "خلط بين الناصب والفاعل"),
+        ("لن", "juste", None),
     ]
     maitrise = conn.execute("SELECT niveau, prochaine_revision FROM maitrise").fetchone()
     assert maitrise["niveau"] == 0.1  # réussi après une erreur
@@ -89,7 +89,7 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
     # Le bilan est arrivé chez le parent.
     bilans = client.get(f"/eleves/{eleve_connecte['id']}/rapports").json()
     assert len(bilans) == 1
-    assert "Yasmine" in bilans[0]["texte"] and "الفاعل : 1 exercice(s) réussi(s) sur 1" in bilans[0]["texte"]
+    assert "Yasmine" in bilans[0]["texte"] and "إعراب الفعل المضارع : 1 exercice(s) réussi(s) sur 1" in bilans[0]["texte"]
 
     # La séance terminée n'accepte plus de messages.
     r = appareil_eleve.post(f"/eleve/seances/{seance_id}/messages", json={"texte": "مرحبا"})
@@ -99,22 +99,22 @@ def test_seance_complete(client, appareil_eleve, eleve_connecte, faux_tuteur):
 def test_memoire_entre_deux_seances(client, appareil_eleve, eleve_connecte, faux_tuteur):
     faux = faux_tuteur([
         reponse(texte("مرحبًا")),
-        reponse(outil("generer_exercice", notion="المفعول به", difficulte=1)),
+        reponse(outil("generer_exercice", notion="النكرة والمعرفة", difficulte=1)),
         reponse(texte("تمرين")),
-        reponse(outil("corriger", exercice_id="maf3oul-1", reponse="أحمد")),
+        reponse(outil("corriger", exercice_id="nakira-1", reponse="معرفة")),
         reponse(texte("فكر مرة أخرى")),
         reponse(texte("إلى اللقاء")),
         reponse(texte("مرحبًا من جديد")),
     ])
     s1 = appareil_eleve.post("/eleve/seances").json()["seance_id"]
     appareil_eleve.post(f"/eleve/seances/{s1}/messages", json={"texte": "تمرين"})
-    appareil_eleve.post(f"/eleve/seances/{s1}/messages", json={"texte": "أحمد"})
+    appareil_eleve.post(f"/eleve/seances/{s1}/messages", json={"texte": "معرفة"})
     appareil_eleve.post(f"/eleve/seances/{s1}/fin")
 
     appareil_eleve.post("/eleve/seances")
     resume = faux.appels[-1]["messages"][-1]["content"]
     assert len(faux.appels[-1]["messages"]) == 2  # nouvelle séance : la conversation repart de zéro
-    assert "Point faible le plus récent : المفعول به (خلط بين المفعول به والفاعل)" in resume
+    assert "Point faible le plus récent : النكرة والمعرفة (خلط بين النكرة والمعرفة)" in resume
 
 
 # --- Robustesse de la boucle ---------------------------------------------------
@@ -144,7 +144,7 @@ def test_api_indisponible(appareil_eleve, eleve_connecte, faux_tuteur):
 
 
 def test_boucle_d_outils_limitee(appareil_eleve, eleve_connecte, faux_tuteur):
-    faux_tuteur([reponse(texte("مرحبًا"))] + [reponse(outil("lire_programme", notion="الفاعل"))] * core.MAX_APPELS_PAR_TOUR)
+    faux_tuteur([reponse(texte("مرحبًا"))] + [reponse(outil("lire_programme", notion="النكرة والمعرفة"))] * core.MAX_APPELS_PAR_TOUR)
     s = appareil_eleve.post("/eleve/seances").json()["seance_id"]
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "?"})
     assert r.json()["reponse"] == core.MESSAGE_INDISPONIBLE
@@ -229,35 +229,35 @@ def _preparer(client, faux_tuteur, appareil_eleve):
 def test_correction_tolere_voyelles_ponctuation_et_hamza(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    for reponse_eleve in ["التِّلْمِيذُ", " التلميذ. ", "«التلميذ»"]:
-        assert executer(ctx, "corriger", {"exercice_id": "fa3il-1", "reponse": reponse_eleve})["verdict"] == "juste"
-    assert executer(ctx, "corriger", {"exercice_id": "maf3oul-1", "reponse": "القصه"})["verdict"] == "faux"
+    for reponse_eleve in ["أَفْعَلَ", " افعل. ", "«أفعل»"]:
+        assert executer(ctx, "corriger", {"exercice_id": "mizan-2", "reponse": reponse_eleve})["verdict"] == "juste"
+    assert executer(ctx, "corriger", {"exercice_id": "nakira-2", "reponse": "كتاب"})["verdict"] == "faux"
     assert normaliser("أَحْمَدُ") == normaliser("احمد")
 
 
 def test_deuxieme_erreur_donne_l_explication(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    premier = executer(ctx, "corriger", {"exercice_id": "kana-3", "reponse": "كان الطالب مجتهد"})
-    assert premier["type_erreur"] == "نسيان نصب خبر كان" and "bonne_reponse" not in premier
-    deuxieme = executer(ctx, "corriger", {"exercice_id": "kana-3", "reponse": "لا أعرف"})
-    assert deuxieme["exercice_termine"] and deuxieme["bonne_reponse"] == "كان الطالب مجتهدا"
-    assert executer(ctx, "enregistrer_progression", {"exercice_id": "kana-3"})["niveau_maitrise"] == 0
+    premier = executer(ctx, "corriger", {"exercice_id": "mizan-3", "reponse": "فعل"})
+    assert premier["type_erreur"] == "إغفال الحروف الزائدة في الميزان" and "bonne_reponse" not in premier
+    deuxieme = executer(ctx, "corriger", {"exercice_id": "mizan-3", "reponse": "لا أعرف"})
+    assert deuxieme["exercice_termine"] and deuxieme["bonne_reponse"] == "اِسْتَفْعَلَ"
+    assert executer(ctx, "enregistrer_progression", {"exercice_id": "mizan-3"})["niveau_maitrise"] == 0
 
 
 def test_progression_exige_une_correction(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    for nom, entree in [("enregistrer_progression", {"exercice_id": "fa3il-2"}),
-                        ("planifier_revision", {"notion": "الفاعل"})]:
+    for nom, entree in [("enregistrer_progression", {"exercice_id": "mudari3-2"}),
+                        ("planifier_revision", {"notion": "إعراب الفعل المضارع"})]:
         try:
             executer(ctx, nom, entree)
             assert False
         except ErreurOutil:
             pass
-    executer(ctx, "corriger", {"exercice_id": "fa3il-2", "reponse": "القمح"})
+    executer(ctx, "corriger", {"exercice_id": "mudari3-2", "reponse": "الفتحة"})
     try:  # un seul essai raté : l'exercice n'est pas terminé
-        executer(ctx, "enregistrer_progression", {"exercice_id": "fa3il-2"})
+        executer(ctx, "enregistrer_progression", {"exercice_id": "mudari3-2"})
         assert False
     except ErreurOutil:
         pass
@@ -267,31 +267,31 @@ def test_reussite_du_premier_coup_et_repetition_espacee(client, appareil_eleve, 
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     jours = []
-    for ex in ["fa3il-1", "fa3il-2", "fa3il-3"]:
+    for ex in ["mudari3-1", "mudari3-2", "mudari3-3"]:
         executer(ctx, "corriger", {"exercice_id": ex, "reponse": EXERCICES[ex][1]["reponses"][0]})
         executer(ctx, "enregistrer_progression", {"exercice_id": ex})
-        jours.append(executer(ctx, "planifier_revision", {"notion": "الفاعل"})["dans_jours"])
+        jours.append(executer(ctx, "planifier_revision", {"notion": "إعراب الفعل المضارع"})["dans_jours"])
     assert jours == [1, 3, 7]  # maîtrise 0.25, 0.5, 0.75 : révisions de plus en plus espacées
 
 
 def test_generer_exercice_adapte_et_sans_corrige(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    ex = executer(ctx, "generer_exercice", {"notion": "الفاعل", "difficulte": 2})
-    assert ex["exercice_id"] == "fa3il-2" and set(ex) == {"exercice_id", "notion", "difficulte", "enonce", "erreurs_recentes"}
-    executer(ctx, "corriger", {"exercice_id": "fa3il-2", "reponse": "القمح"})
-    executer(ctx, "corriger", {"exercice_id": "fa3il-2", "reponse": "الفلاح"})
-    suivant = executer(ctx, "generer_exercice", {"notion": "الفاعل", "difficulte": 2})
-    assert suivant["exercice_id"] != "fa3il-2"  # exercice réussi : pas reproposé
-    assert suivant["erreurs_recentes"] == ["خلط بين الفاعل والمفعول به"]
+    ex = executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 2})
+    assert ex["exercice_id"] == "mudari3-2" and set(ex) == {"exercice_id", "notion", "difficulte", "enonce", "erreurs_recentes"}
+    executer(ctx, "corriger", {"exercice_id": "mudari3-2", "reponse": "الفتحة"})
+    executer(ctx, "corriger", {"exercice_id": "mudari3-2", "reponse": "الضمة"})
+    suivant = executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 2})
+    assert suivant["exercice_id"] != "mudari3-2"  # exercice réussi : pas reproposé
+    assert suivant["erreurs_recentes"] == ["خلط بين علامة الرفع وعلامة النصب"]
 
 
 def test_outils_limites_a_l_eleve_de_la_seance(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
-    executer(ctx, "corriger", {"exercice_id": "fa3il-1", "reponse": "الدرس"})
+    executer(ctx, "corriger", {"exercice_id": "mudari3-1", "reponse": "التلميذ"})
     autre = Contexte(db=ctx.db, eleve_id=eleve_connecte["id"] + 1000, seance_id=s, profil="P2")
-    assert executer(autre, "generer_exercice", {"notion": "الفاعل", "difficulte": 1})["erreurs_recentes"] == []
+    assert executer(autre, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 1})["erreurs_recentes"] == []
 
 
 def test_donnees_exemple_coherentes():

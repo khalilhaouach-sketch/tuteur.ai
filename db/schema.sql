@@ -114,4 +114,5 @@ CREATE TABLE IF NOT EXISTS passages (
     version TEXT NOT NULL                         -- empreinte du fichier indexé
 );
 -- Index de recherche plein texte (texte arabe normalisé : sans voyelles, sans préfixes).
-CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5(contenu);
+-- Le titre de section a plus de poids que le texte dans le classement (voir rag/search.py).
+CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5(titre, contenu);
