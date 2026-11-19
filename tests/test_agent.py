@@ -324,3 +324,32 @@ def test_donnees_exemple_coherentes():
             assert a_des_voyelles(r), (ex_id, r)  # réponses de référence vocalisées
         for erreur in ex["erreurs"]:
             assert all(comparer(erreur, r, False) != "juste" for r in ex["reponses"]), (ex_id, erreur)
+
+
+def test_banque_1ac_complete():
+    from agent.tools.donnees_exemple import NOTIONS
+
+    assert len(NOTIONS) == 23 and len(EXERCICES) == 69
+    for notion, d in NOTIONS.items():
+        assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
+
+
+def test_chaque_exercice_se_corrige_comme_prevu(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    """Pour les 69 exercices : la bonne réponse est juste, chaque erreur connue reçoit son type."""
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)
+    for ex_id, (_, ex) in EXERCICES.items():
+        for bonne in ex["reponses"]:
+            assert executer(ctx, "corriger", {"exercice_id": ex_id, "reponse": bonne})["verdict"] == "juste", ex_id
+        for erreur, type_erreur in ex["erreurs"].items():
+            sortie = executer(ctx, "corriger", {"exercice_id": ex_id, "reponse": erreur})
+            assert sortie["verdict"] in ("faux", "a_vocaliser"), (ex_id, erreur)
+            if sortie["verdict"] == "faux":
+                assert sortie["type_erreur"] == type_erreur, (ex_id, erreur)
+
+
+def test_chadda_oubliee_est_une_erreur():
+    from agent.tools._commun import comparer
+
+    assert comparer("فَعَلَ", "فَعَّلَ", True) == "voyelles"  # lettre vocalisée, chadda oubliée
+    assert comparer("فعل", "فَعَّلَ", True) == "a_vocaliser"  # aucune voyelle : on redemande

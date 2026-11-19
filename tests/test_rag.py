@@ -152,3 +152,11 @@ def test_les_23_lecons_de_1ac_ont_un_cours():
     titres = [l[3:].strip() for f in ("docs/cours/1ac_dawra1.md", "docs/cours/1ac_dawra2.md")
               for l in Path(f).read_text(encoding="utf-8").splitlines() if l.startswith("## ")]
     assert len(titres) == 23
+
+
+def test_chaque_notion_a_exercices_a_un_cours(base_indexee):
+    from agent.tools.donnees_exemple import NOTIONS
+
+    for notion in NOTIONS:
+        passages = chercher(base_indexee, notion, "P2")
+        assert passages and passages[0]["reference"].startswith("docs/cours/1ac_dawra"), notion

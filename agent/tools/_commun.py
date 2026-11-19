@@ -15,6 +15,7 @@ class ErreurOutil(Exception):
 # Voyelles brèves, tanwin, chadda, soukoun et alif suscrit (« ـٰ »).
 _DIACRITIQUES = set("\u064B\u064C\u064D\u064E\u064F\u0650\u0651\u0652\u0670")
 SOUKOUN = "\u0652"
+CHADDA = "\u0651"
 KASRA = "\u0650"
 _TASHKEEL = re.compile(r"[\u064B-\u0652\u0670\u0640]")
 _PONCTUATION = re.compile(r"[.,;:!?،؛؟«»\"'()\[\]\-]")
@@ -71,7 +72,10 @@ def comparer(reponse: str, attendue: str, voyelles_obligatoires: bool, tolerer_h
     for i, ((_, vr), (_, va)) in enumerate(zip(r, a)):
         if not vr <= va:
             return "voyelles"  # une voyelle écrite par l'élève n'est pas la bonne
-        if (va - _facultatives(a, i)) - vr:
+        oubliees = (va - _facultatives(a, i)) - vr
+        if vr and CHADDA in oubliees:
+            return "voyelles"  # lettre vocalisée mais chadda oubliée : c'est une erreur, pas un oubli de شكل
+        if oubliees:
             manquantes = True
     if manquantes and voyelles_obligatoires:
         return "a_vocaliser"

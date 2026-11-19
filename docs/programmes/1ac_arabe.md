@@ -4,8 +4,8 @@
 > - La **liste des leçons** (الدروس اللغوية، التعبير والإنشاء، النصوص القرائية) est reprise de deux sites de cours
 >   marocains qui donnent la même liste (cités en bas de page). Le texte officiel du ministère n'a pas pu être consulté.
 > - L'ordre et les titres des textes peuvent varier selon le manuel utilisé en classe.
-> - Les 23 leçons de langue ont un cours (résumé original à relire) dans `docs/cours/1ac_dawra1.md` et `1ac_dawra2.md`.
->   Les trois leçons marquées ✅ ont aussi des exercices corrigés automatiquement.
+> - Les 23 leçons de langue ont un cours (résumé original à relire) dans `docs/cours/1ac_dawra1.md` et `1ac_dawra2.md`,
+>   et 3 exercices corrigés automatiquement dans `agent/tools/exercices_1ac.yaml`.
 
 ## 1. Composantes
 - **النصوص القرائية** (textes de lecture) : textes répartis par domaines (مجالات), étudiés pour la compréhension.
@@ -30,7 +30,7 @@ Textes, dans l'ordre donné par la source : الرياضة والمجتمع، ا
 
 ## 3. Leçons de langue (الدروس اللغوية)
 ### Semestre 1 : morphologie (الصرف) et إعراب du verbe
-1. الميزان الصرفي والمجرد والمزيد ✅
+1. الميزان الصرفي والمجرد والمزيد
 2. مزيد الثلاثي والرباعي ومعاني صيغ الزوائد
 3. تصريف الفعل الصحيح: السالم والمهموز والمضعف
 4. تصريف الفعل المعتل: المثال والأجوف
@@ -39,11 +39,11 @@ Textes, dans l'ordre donné par la source : الرياضة والمجتمع، ا
 7. الإعراب والبناء
 8. الأسماء المعربة والأسماء المبنية
 9. علامات البناء في الأفعال
-10. إعراب الفعل المضارع: رفعه ونصبه ✅
+10. إعراب الفعل المضارع: رفعه ونصبه
 11. إعراب الفعل المضارع: جزمه
 
 ### Semestre 2 : syntaxe (النحو)
-12. النكرة والمعرفة ✅
+12. النكرة والمعرفة
 13. العلم
 14. الضمير البارز والضمير المستتر
 15. الضمير المتصل
