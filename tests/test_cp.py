@@ -67,3 +67,12 @@ def test_seance_cp_limitee_a_20_minutes():
 def test_page_eleve_a_un_mode_cp(client):
     page = client.get("/").text
     assert "mode-cp" in page and "choix" in page
+
+
+def test_page_eleve_lit_a_voix_haute_au_cp(client):
+    """La voix du téléphone (synthèse du navigateur) : lecture des messages et des choix au CP.
+    Vérifiée aussi dans un vrai navigateur avec une voix simulée (voir le compte rendu de la phase 5)."""
+    page = client.get("/").text
+    for element in ["speechSynthesis", "texteAPrononcer", "boutonEcouter", 'id="test-voix"', '"ar-ma"', "u.rate = 0.8"]:
+        assert element in page, element
+    assert 'if (profil === "P1") parler(texte)' in page  # lecture automatique seulement au CP

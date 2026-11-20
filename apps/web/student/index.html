@@ -36,6 +36,16 @@
   body.mode-cp #choix button.simple { font-size: 1.6rem; min-height: 72px; }
   body.mode-cp .saisie { display:none; }
   body.mode-cp #commencer { font-size: 1.8rem; padding: 20px 28px; border-radius: 20px; }
+
+  /* Voix (mode CP) */
+  .ecouter { background:transparent; border:0; color:var(--accent); font-size:1.4rem; padding:4px 8px; cursor:pointer; }
+  .msg.tuteur .ecouter { display:none; }
+  body.mode-cp .msg.tuteur .ecouter { display:inline-block; margin-inline-start:8px; vertical-align:middle; }
+  .option { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  #choix .option .ecouter { display:none; }
+  body.mode-cp #choix .option .ecouter { display:inline-block; background:transparent; border:0; min-width:0; min-height:0; font-size:1.6rem; padding:0; }
+  #test-voix { display:none; }
+  body.mode-cp #test-voix { display:inline-block; }
 </style>
 </head>
 <body>
@@ -53,6 +63,8 @@
     <p>Prêt(e) à travailler ?</p>
     <p class="erreur" id="erreur-accueil"></p>
     <button id="commencer">Commencer la séance</button>
+    <button id="test-voix" class="secondaire">🔊 Tester la voix</button>
+    <p class="doux" id="info-voix" style="color:var(--doux)"></p>
   </section>
 
   <section id="ecran-seance" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
@@ -93,11 +105,65 @@ function choisirProfil(p) {
   document.body.classList.toggle("mode-cp", p === "P1");
 }
 
+// --- Voix du téléphone (synthèse vocale intégrée au navigateur, gratuite, rien n'est envoyé) ---
+const voix = { liste: [] };
+function chargerVoix() {
+  if (!("speechSynthesis" in window)) return;
+  voix.liste = speechSynthesis.getVoices().filter((v) => (v.lang || "").toLowerCase().startsWith("ar"));
+}
+if ("speechSynthesis" in window) { chargerVoix(); speechSynthesis.onvoiceschanged = chargerVoix; }
+
+function meilleureVoix() {
+  // Préférence : arabe du Maroc, puis toute voix arabe.
+  return voix.liste.find((v) => v.lang.toLowerCase() === "ar-ma") || voix.liste[0] || null;
+}
+
+function texteAPrononcer(texte) {
+  return texte
+    .replace(/\p{Extended_Pictographic}/gu, "")       // emojis
+    .replace(/\u0640/g, "")                            // tatweel des formes de lettres (مـ ـمـ ـم)
+    .replace(/[A-Za-zÀ-ÿ]+/g, "")                      // le tuteur ne lit que l'arabe
+    .replace(/[«»"()\/]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+function parler(texte) {
+  if (!("speechSynthesis" in window)) return false;
+  const t = texteAPrononcer(texte);
+  if (!t) return false;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = "ar"; u.rate = 0.8;                        // un peu plus lent pour un enfant
+  const v = meilleureVoix(); if (v) { u.voice = v; u.lang = v.lang; }
+  speechSynthesis.speak(u);
+  return true;
+}
+
+function boutonEcouter(texte) {
+  const b = document.createElement("button");
+  b.className = "ecouter"; b.textContent = "🔊"; b.title = "Écouter"; b.type = "button";
+  b.onclick = (e) => { e.stopPropagation(); parler(texte); };
+  return b;
+}
+
+$("test-voix").onclick = () => {
+  chargerVoix();
+  const v = meilleureVoix();
+  const ok = parler("بَ بُ بِ. بَابٌ.");
+  $("info-voix").textContent = !ok ? "Ce navigateur ne sait pas lire à voix haute."
+    : v ? `Voix utilisée : ${v.name} (${v.lang}).`
+    : "Aucune voix arabe trouvée sur cet appareil : installez-en une dans les réglages du téléphone (Synthèse vocale).";
+};
+
 function ajouter(texte, qui) {
   const div = document.createElement("div");
   div.className = "msg " + qui;
   div.dir = "auto";
   div.textContent = texte;
+  if (qui === "tuteur") {
+    div.appendChild(boutonEcouter(texte));
+    if (profil === "P1") parler(texte);  // au CP, le tuteur lit son message à voix haute
+  }
   $("fil").appendChild(div);
   div.scrollIntoView({ behavior: "smooth", block: "end" });
 }
@@ -111,7 +177,10 @@ function boutons(choix) {
     b.textContent = c; b.dir = "auto";
     if (!(choix && choix.length)) b.className = "simple";
     b.onclick = () => envoyer(c);
-    zone.appendChild(b);
+    const option = document.createElement("div");
+    option.className = "option";
+    option.append(b, boutonEcouter(c));  // au CP, l'enfant peut écouter chaque choix avant de toucher
+    zone.appendChild(option);
   }
 }
 
