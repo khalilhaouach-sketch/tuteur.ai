@@ -330,8 +330,8 @@ def test_banque_1ac_complete():
 
     from agent import parcours
 
-    # 28 lettres + 11 leçons de transition + 24 du primaire + 23 de 1AC, chacune dans un palier du parcours.
-    assert len(NOTIONS) == 86 and len(EXERCICES) == 3 * 86
+    # 28 lettres + 11 leçons de transition + 28 du primaire + 23 de 1AC, chacune dans un palier du parcours.
+    assert len(NOTIONS) == 90 and len(EXERCICES) == 3 * 90
     assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
         assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
@@ -382,3 +382,18 @@ def test_cp_lettre_et_voyelle(client, appareil_eleve, eleve_connecte, faux_tuteu
     assert verdict("cp-02-1", "تَ")["type_erreur"] == "خلط بين «ب» و«ت»"
     assert verdict("cp-02-3", "بُو")["verdict"] == "juste"
     assert verdict("cp-02-3", "بِي")["type_erreur"] == "خلط بين حروف المد"
+
+
+def test_orthographe_de_la_hamza_stricte(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    """Au palier d'orthographe, « ا » à la place de « أ » est une faute ; ailleurs, la hamza reste tolérée."""
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)
+
+    def verdict(ex, rep):
+        return executer(ctx, "corriger", {"exercice_id": ex, "reponse": rep})["verdict"]
+
+    assert verdict("hamzawst-3", "يَسْأَلُ") == "juste"
+    assert verdict("hamzawst-3", "يسال") == "faux"         # hamza oubliée : faute d'orthographe
+    assert verdict("wasl-3", "إِنْطِلَاقٌ") == "faux"       # hamza de liaison écrite comme hamza de coupure
+    assert verdict("wasl-3", "انطلاق") == "juste"
+    assert verdict("mizan-2", "اَفْعَلَ") == "juste"        # hors orthographe : hamza tolérée
