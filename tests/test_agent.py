@@ -181,7 +181,7 @@ def test_prompt_cp_identique_a_spec():
     spec = Path("SPEC.md").read_text(encoding="utf-8")
     blocs = re.findall(r"```\n(.*?)```", spec, re.S)
     socle = next(b for b in blocs if b.startswith("Tu es un professeur"))
-    p1 = next(b for b in blocs if "PROFIL : élève de CP" in b).replace("[SOCLE COMMUN]\n\n", "")
+    p1 = next(b for b in blocs if "PROFIL : jeune enfant" in b).replace("[SOCLE COMMUN]\n\n", "")
     assert core.charger_prompt("P1") == socle.strip() + "\n\n" + p1.strip() + "\n"
 
 def test_rapports_reserves_au_parent(client, appareil_eleve, eleve_connecte):
@@ -208,7 +208,7 @@ def test_prompt_p2_identique_a_spec():
     spec = Path("SPEC.md").read_text(encoding="utf-8")
     blocs = re.findall(r"```\n(.*?)```", spec, re.S)
     socle = next(b for b in blocs if b.startswith("Tu es un professeur"))
-    p2 = next(b for b in blocs if "1ʳᵉ année du collège. La matière" in b).replace("[SOCLE COMMUN]\n\n", "")
+    p2 = next(b for b in blocs if "PROFIL : adolescent" in b).replace("[SOCLE COMMUN]\n\n", "")
     assert core.charger_prompt("P2") == socle.strip() + "\n\n" + p2.strip() + "\n"
 
 
@@ -307,7 +307,10 @@ def test_outils_limites_a_l_eleve_de_la_seance(client, appareil_eleve, eleve_con
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     executer(ctx, "corriger", {"exercice_id": "mudari3-1", "reponse": "التلميذ"})
-    autre = Contexte(db=ctx.db, eleve_id=eleve_connecte["id"] + 1000, seance_id=s, profil="P2")
+    autre_id = ctx.db.execute(
+        "INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) SELECT parent_id, 'Adam', 'P2', 10, cree_le"
+        " FROM eleves WHERE id = ?", (eleve_connecte["id"],)).lastrowid
+    autre = Contexte(db=ctx.db, eleve_id=autre_id, seance_id=s, profil="P2")
     assert executer(autre, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 1})["erreurs_recentes"] == []
 
 
@@ -325,8 +328,11 @@ def test_donnees_exemple_coherentes():
 def test_banque_1ac_complete():
     from agent.tools.donnees_exemple import NOTIONS
 
-    par_niveau = {n: sum(1 for d in NOTIONS.values() if d["niveau"] == n) for n in ("P1", "P2")}
-    assert par_niveau == {"P1": 28, "P2": 23} and len(EXERCICES) == 3 * 51
+    from agent import parcours
+
+    # 28 lettres + 11 leçons de transition + 23 leçons de 1AC, chacune dans un palier du parcours.
+    assert len(NOTIONS) == 62 and len(EXERCICES) == 3 * 62
+    assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
         assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
 
@@ -352,16 +358,16 @@ def test_chadda_oubliee_est_une_erreur():
     assert comparer("فعل", "فَعَّلَ", True) == "a_vocaliser"  # aucune voyelle : on redemande
 
 
-def test_exercices_limites_au_niveau_de_l_eleve(client, appareil_eleve, eleve_connecte, faux_tuteur):
+def test_exercices_limites_au_palier_de_l_eleve(client, appareil_eleve, eleve_connecte, faux_tuteur):
     s = _preparer(client, faux_tuteur, appareil_eleve)
-    ctx = _ctx(eleve_connecte["id"], s)  # élève de 1AC (P2)
-    try:
-        executer(ctx, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})
-        assert False, "un exercice de CP a été proposé à un élève de 1AC"
+    ctx = _ctx(eleve_connecte["id"], s)  # au dernier palier : peut réviser les lettres du CP
+    assert executer(ctx, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})["exercice_id"] == "cp-02-1"
+    ctx.db.execute("UPDATE eleves SET palier = 1 WHERE id = ?", (eleve_connecte["id"],))
+    try:  # au palier 1 : pas de leçon d'un palier suivant
+        executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 1})
+        assert False, "une leçon d'un palier suivant a été proposée"
     except ErreurOutil as e:
-        assert "إعراب الفعل المضارع" in str(e)
-    cp = Contexte(db=ctx.db, eleve_id=eleve_connecte["id"], seance_id=s, profil="P1")
-    assert executer(cp, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})["exercice_id"] == "cp-02-1"
+        assert "palier 1" in str(e) and "حرف الميم" in str(e)
 
 
 def test_cp_lettre_et_voyelle(client, appareil_eleve, eleve_connecte, faux_tuteur):

@@ -35,9 +35,12 @@ def inscrire(client, email="parent@exemple.ma", mot_de_passe="motdepasse123"):
 
 @pytest.fixture
 def eleve_connecte(client, appareil_eleve):
-    """Un parent, un élève P2 et l'appareil de l'élève déjà connecté."""
+    """Un parent, une adolescente (style P2) placée au dernier palier (1AC), et son appareil déjà connecté."""
+    from agent import parcours
+
     inscrire(client)
     eleve = client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"}).json()
+    assert client.put(f"/eleves/{eleve['id']}/palier", json={"palier": parcours.DERNIER}).status_code == 200
     code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
     assert appareil_eleve.post("/eleve/connexion", json={"code": code}).status_code == 200
     return eleve

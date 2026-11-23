@@ -56,7 +56,8 @@
     <div class="carte" style="margin-top:12px">
       <h2>Ajouter un enfant</h2>
       <input id="prenom" placeholder="Prénom uniquement">
-      <select id="profil"><option value="P2">1ʳᵉ année du collège (1AC)</option><option value="P1">CP</option></select>
+      <select id="profil"><option value="P1">Enfant (grosses lettres, voix, boutons)</option><option value="P2">Adolescent</option></select>
+      <p class="doux">Le niveau de départ est fixé ensuite, par un petit test de positionnement ou par vous.</p>
       <p class="erreur" id="erreur-ajout"></p>
       <button id="ajouter">Ajouter</button>
     </div>
@@ -69,6 +70,12 @@
     <div class="carte"><h2>Connecter la tablette de l'enfant</h2>
       <p class="doux">Le code est valable 15 minutes et une seule fois. Ouvrez la page du tuteur sur l'appareil de l'enfant et tapez-le.</p>
       <div class="ligne"><span id="code" class="code"></span><button id="generer-code" class="secondaire">Générer un code</button></div>
+    </div>
+    <div class="carte"><h2>Parcours</h2><div id="parcours"></div>
+      <div class="ligne" style="margin-top:10px">
+        <select id="choix-palier" style="width:auto;margin:0"></select>
+        <button id="placer" class="secondaire">Placer l'enfant sur ce palier</button>
+      </div>
     </div>
     <div class="carte"><h2>Progression par leçon</h2><div class="tableau" id="progression"></div></div>
     <div class="carte"><h2>Bilans</h2>
@@ -85,7 +92,7 @@
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
-const PROFILS = { P1: "CP", P2: "1AC" };
+const PROFILS = { P1: "enfant", P2: "adolescent" };
 let mode = "connexion", eleveCourant = null;
 
 async function api(chemin, corps, methode) {
@@ -135,7 +142,7 @@ async function tableau() {
   if (!eleves.length) liste.append(el("p", { class: "doux" }, "Ajoutez votre premier enfant ci-dessous."));
   for (const e of eleves) {
     const carte = el("div", { class: "carte ligne" },
-      el("div", {}, el("strong", {}, e.prenom), " ", el("span", { class: "doux" }, `· ${PROFILS[e.profil]} · dernière séance : ${date(e.derniere_seance)}`)));
+      el("div", {}, el("strong", {}, e.prenom), " ", el("span", { class: "doux" }, `· ${e.palier ? "palier " + e.palier : "à positionner"} · dernière séance : ${date(e.derniere_seance)}`)));
     const droite = el("div", { class: "ligne" });
     if (e.alertes) droite.append(el("span", { class: "badge" }, `${e.alertes} alerte${e.alertes > 1 ? "s" : ""}`));
     const voir = el("button", {}, "Voir"); voir.onclick = () => detail(e); droite.append(voir);
@@ -151,9 +158,32 @@ $("ajouter").onclick = () => essai(async () => {
 // Détail d'un enfant
 async function detail(e) {
   eleveCourant = e; $("nom-eleve").textContent = `${e.prenom} · ${PROFILS[e.profil]}`; $("code").textContent = "";
-  const [alertes, prog, bilans, seances] = await Promise.all([
+  const [alertes, prog, bilans, seances, parcours] = await Promise.all([
     api(`/eleves/${e.id}/alertes`), api(`/eleves/${e.id}/progression`),
-    api(`/eleves/${e.id}/rapports`), api(`/eleves/${e.id}/seances`)]);
+    api(`/eleves/${e.id}/rapports`), api(`/eleves/${e.id}/seances`), api(`/eleves/${e.id}/parcours`)]);
+
+  // Parcours : tests à confirmer, puis la liste des paliers.
+  const zp = $("parcours"); zp.innerHTML = "";
+  for (const t of parcours.tests.filter((t) => t.statut === "a_confirmer")) {
+    const oui = el("button", {}, "Confirmer"), non = el("button", { class: "secondaire" }, "Refuser");
+    oui.onclick = async () => { await api(`/eleves/${e.id}/tests/${t.id}/decision`, { accepte: true }); detail(e); };
+    non.onclick = async () => { await api(`/eleves/${e.id}/tests/${t.id}/decision`, { accepte: false }); detail(e); };
+    const quoi = t.type === "passage" ? "a réussi le test de passage" : "a fait le test de positionnement";
+    zp.append(el("div", { class: "alerte", style: "border-color:var(--accent);background:var(--eleve)" },
+      el("strong", {}, `${e.prenom} ${quoi} (${Math.round((t.score || 0) * 100)} %).`), el("br"),
+      el("span", { dir: "auto" }, `Palier proposé : ${t.palier_propose} · ${t.titre_palier}`), el("br"),
+      el("div", { class: "ligne", style: "justify-content:flex-start;margin-top:8px" }, oui, non)));
+  }
+  if (parcours.palier === null) zp.append(el("p", { class: "doux" }, "Pas encore positionné : l'enfant fait le test depuis sa page, ou placez-le vous-même ci-dessous."));
+  const icones = { valide: "✓", actuel: "▶", a_venir: "○" };
+  for (const p of parcours.paliers) {
+    zp.append(el("div", { class: "ligne", style: `padding:4px 0;${p.etat === "actuel" ? "font-weight:700" : p.etat === "a_venir" ? "opacity:.6" : ""}` },
+      el("span", { dir: "auto" }, `${icones[p.etat]} ${p.numero}. ${p.titre}`),
+      el("span", { class: "doux" }, `${p.lecons_acquises}/${p.lecons} leçons acquises`)));
+  }
+  const sel = $("choix-palier"); sel.innerHTML = "";
+  for (const p of parcours.paliers) sel.append(el("option", { value: p.numero }, `${p.numero}. ${p.titre}`));
+  sel.value = parcours.palier || 1;
 
   const za = $("zone-alertes"); za.innerHTML = "";
   for (const a of alertes.filter((a) => !a.vue_le)) {
@@ -191,6 +221,10 @@ async function detail(e) {
   afficher("ecran-eleve");
 }
 $("retour").onclick = tableau;
+$("placer").onclick = async () => {
+  await api(`/eleves/${eleveCourant.id}/palier`, { palier: Number($("choix-palier").value) }, "PUT");
+  detail(eleveCourant);
+};
 $("generer-code").onclick = async () => { const r = await api(`/eleves/${eleveCourant.id}/code`, {}); $("code").textContent = r.code; };
 $("generer-bilan").onclick = async () => { await api(`/eleves/${eleveCourant.id}/rapports?periode_jours=7`, {}); detail(eleveCourant); };
 

@@ -19,6 +19,7 @@ from pathlib import Path
 
 import yaml
 
+from agent import parcours
 from agent.tools._commun import normaliser
 from agent.tools.donnees_exemple import EXERCICES
 
@@ -116,8 +117,8 @@ def executer_cas(cas: dict, tuteur, profil: str = "P2") -> tuple[list[str], list
             (maintenant, maintenant),
         ).lastrowid
         eleve = conn.execute(
-            "INSERT INTO eleves (parent_id, prenom, profil, cree_le) VALUES (?, 'Yasmine', ?, ?)",
-            (parent, profil, maintenant),
+            "INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) VALUES (?, 'Yasmine', ?, ?, ?)",
+            (parent, profil, 1 if profil == "P1" else parcours.DERNIER, maintenant),
         ).lastrowid
         seance = conn.execute("INSERT INTO seances (eleve_id, debut) VALUES (?, ?)", (eleve, maintenant)).lastrowid
         reponses = [tuteur.ouvrir_seance(conn, eleve, seance)]

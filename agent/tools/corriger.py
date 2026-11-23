@@ -22,21 +22,27 @@ DEFINITION = {
 }
 
 
+def evaluer(ex: dict, reponse: str) -> tuple[str, str | None]:
+    """Verdict (« juste », « faux » ou « a_vocaliser ») et type d'erreur d'une réponse à un exercice."""
+    tolerer = ex.get("tolerer_hamza", True)
+    obligatoires = ex.get("voyelles_obligatoires", False)
+    resultats = [comparer(reponse, r, obligatoires, tolerer) for r in ex["reponses"]]
+    if "juste" in resultats:
+        return "juste", None
+    if "a_vocaliser" in resultats:
+        return "a_vocaliser", None
+    return "faux", _type_erreur(reponse, ex, tolerer, voyelles_seulement="voyelles" in resultats)
+
+
 def executer(ctx, entree: dict) -> dict:
     notion, ex = exercice(entree["exercice_id"])
     reponse = entree["reponse"].strip()[:500]
-    tolerer = ex.get("tolerer_hamza", True)
-    obligatoires = ex.get("voyelles_obligatoires", False)
-
-    resultats = [comparer(reponse, r, obligatoires, tolerer) for r in ex["reponses"]]
-    juste = "juste" in resultats
-    if not juste and "a_vocaliser" in resultats:
+    verdict, type_erreur = evaluer(ex, reponse)
+    if verdict == "a_vocaliser":
         # Bonnes lettres, voyelles justes mais manquantes : on redemande, sans compter d'erreur.
         return {"verdict": "a_vocaliser", "exercice_termine": False,
                 "consigne": "Demande à l'élève de réécrire sa réponse avec toutes les voyelles (الشَّكْل)."}
-    type_erreur = None
-    if not juste:
-        type_erreur = _type_erreur(reponse, ex, tolerer, voyelles_seulement="voyelles" in resultats)
+    juste = verdict == "juste"
 
     ctx.db.execute(
         "INSERT INTO tentatives (eleve_id, notion_id, seance_id, exercice, reponse, verdict, type_erreur, cree_le)"

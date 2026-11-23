@@ -158,7 +158,6 @@ def test_les_23_lecons_de_1ac_ont_un_cours():
 def test_chaque_notion_a_exercices_a_un_cours(base_indexee):
     from agent.tools.donnees_exemple import NOTIONS
 
-    cours = {"P1": "docs/cours/cp_huruf.md", "P2": "docs/cours/1ac_dawra"}
-    for notion, d in NOTIONS.items():
-        passages = chercher(base_indexee, notion, d["niveau"])
-        assert any(r["reference"].startswith(cours[d["niveau"]]) for r in passages[:2]), notion
+    for notion in NOTIONS:  # lettres, transition et 1AC : chaque leçon a un cours dans docs/cours/
+        passages = chercher(base_indexee, notion)
+        assert any(r["reference"].startswith("docs/cours/") for r in passages[:2]), notion

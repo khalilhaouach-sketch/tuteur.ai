@@ -14,6 +14,7 @@ charger_env()  # .env local (clé API...), avant tout le reste
 from apps.api import db  # noqa: E402
 from rag.ingest import indexer  # noqa: E402
 from apps.api.auth.routes import router as auth_router
+from apps.api.parcours.routes import router as parcours_router
 from apps.api.reports.routes import router as parent_router
 from apps.api.sessions.routes import router as seances_router
 
@@ -39,6 +40,7 @@ def creer_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(seances_router)
     app.include_router(parent_router)
+    app.include_router(parcours_router)
 
     @app.get("/", include_in_schema=False)
     def page_eleve():

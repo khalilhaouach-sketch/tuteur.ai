@@ -7,7 +7,7 @@ DEFINITION = {
     "name": "lire_programme",
     "description": (
         "Cherche dans le programme officiel et les cours du professeur les passages sur une notion d'arabe "
-        "(par exemple « الفاعل » ou « حرف الباء »), au niveau de l'élève. Renvoie au plus 3 passages, "
+        "(par exemple « الفاعل » ou « حرف الباء »), Renvoie au plus 3 passages, "
         "chacun avec sa référence (fichier et section). N'explique que ce qui figure dans ces passages, "
         "en reprenant leurs exemples. Si aucun passage n'est trouvé, dis-le au lieu d'inventer."
     ),
@@ -18,7 +18,7 @@ DEFINITION = {
 
 def executer(ctx, entree: dict) -> dict:
     notion = entree["notion"].strip()[:200]
-    passages = chercher(ctx.db, notion, ctx.profil)
+    passages = chercher(ctx.db, notion)  # tout le parcours : l'élève peut réviser ou être en avance
     if not passages:
         return {
             "notion": notion,

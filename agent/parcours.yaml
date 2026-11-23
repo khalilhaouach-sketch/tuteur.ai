@@ -1,0 +1,109 @@
+# Parcours unique d'arabe : du CP à la 1AC, en paliers (ordre = progression).
+# Chaque palier regroupe des notions (leçons) des banques d'exercices de agent/tools/.
+# Un élève avance en réussissant le test de passage du palier (80 %), confirmé par le parent.
+# À COMPLÉTER : paliers du primaire (2AP à 6AP) entre « مبادئ النحو » et la 1AC.
+
+seuil_passage: 0.8
+paliers:
+- numero: 1
+  titre: الحروف (1)
+  description: Lettres du CP, unités 1 et 2
+  notions:
+  - حرف الميم
+  - حرف الباء
+  - حرف الراء
+  - حرف الدال
+  - حرف السين
+  - حرف اللام
+  - حرف النون
+  - حرف التاء
+- numero: 2
+  titre: الحروف (2)
+  description: Lettres du CP, unité 3
+  notions:
+  - حرف الفاء
+  - حرف الكاف
+  - حرف العين
+  - حرف الهاء
+  - حرف الجيم
+  - حرف الحاء
+  - حرف القاف
+  - حرف الصاد
+- numero: 3
+  titre: الحروف (3)
+  description: Lettres du CP, unités 4 et 5
+  notions:
+  - حرف الهمزة
+  - حرف الواو
+  - حرف الياء
+  - حرف الزاي
+  - حرف الشين
+  - حرف الطاء
+  - حرف الخاء
+  - حرف الغين
+  - حرف الثاء
+  - حرف الذال
+  - حرف الضاد
+  - حرف الظاء
+- numero: 4
+  titre: الحركات والمقاطع
+  description: 'Transition : voyelles, المدود، التنوين، الشدة والسكون'
+  notions:
+  - الحركات القصيرة
+  - المدود
+  - التنوين
+  - الشدة والسكون
+- numero: 5
+  titre: قراءة الكلمات والجمل
+  description: 'Transition : اللام الشمسية والقمرية، التاء، فهم الجملة'
+  notions:
+  - اللام الشمسية واللام القمرية
+  - التاء المربوطة والتاء المفتوحة
+  - فهم الجملة
+- numero: 6
+  titre: مبادئ النحو
+  description: 'Transition : أنواع الكلمة، الجملة، المذكر والمؤنث، العدد'
+  notions:
+  - الاسم والفعل والحرف
+  - الجملة الاسمية والجملة الفعلية
+  - المذكر والمؤنث
+  - المفرد والمثنى والجمع
+- numero: 7
+  titre: الصرف (1AC)
+  description: '1AC semestre 1 : الميزان الصرفي et تصريف الأفعال'
+  notions:
+  - الميزان الصرفي
+  - مزيد الثلاثي والرباعي
+  - الفعل الصحيح
+  - المثال والأجوف
+  - الفعل الناقص
+  - اللفيف
+- numero: 8
+  titre: الإعراب والبناء (1AC)
+  description: '1AC semestre 1 : إعراب et بناء'
+  notions:
+  - الإعراب والبناء
+  - الأسماء المعربة والمبنية
+  - علامات البناء في الأفعال
+  - إعراب الفعل المضارع
+  - جزم الفعل المضارع
+- numero: 9
+  titre: المعارف (1AC)
+  description: '1AC semestre 2 : النكرة والمعرفة، الضمائر، الإشارة، الموصول'
+  notions:
+  - النكرة والمعرفة
+  - العلم
+  - الضمير البارز والمستتر
+  - الضمير المتصل
+  - الضمير المنفصل
+  - أسماء الإشارة
+  - الاسم الموصول
+- numero: 10
+  titre: الجملة (1AC)
+  description: '1AC semestre 2 : المبتدأ والخبر، المتعدي، المبني للمجهول'
+  notions:
+  - أحوال المبتدأ والخبر
+  - تطابق المبتدأ والخبر
+  - ظن وأخواتها
+  - أعطى وأخواتها
+  - المبني للمجهول

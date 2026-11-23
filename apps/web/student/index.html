@@ -60,11 +60,29 @@
   </section>
 
   <section id="ecran-accueil" class="carte" hidden>
-    <p>Prêt(e) à travailler ?</p>
+    <p id="mon-palier"></p>
+    <p id="invite-positionnement" hidden>Avant de commencer, un petit test pour savoir où tu en es.</p>
     <p class="erreur" id="erreur-accueil"></p>
-    <button id="commencer">Commencer la séance</button>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <button id="test-positionnement" hidden>Faire le test</button>
+      <button id="commencer">Commencer la séance</button>
+      <button id="test-passage" class="secondaire" hidden>🏆 Test de passage</button>
+    </div>
     <button id="test-voix" class="secondaire">🔊 Tester la voix</button>
     <p class="doux" id="info-voix" style="color:var(--doux)"></p>
+  </section>
+
+  <section id="ecran-test" class="carte" hidden>
+    <p class="doux" id="test-progression" style="color:var(--doux)"></p>
+    <div id="test-question" class="msg tuteur" dir="auto" style="max-width:100%"></div>
+    <p id="test-retour" style="font-size:1.4rem;min-height:1.6em;margin:8px 0"></p>
+    <div id="test-choix" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center"></div>
+    <div class="saisie" id="test-saisie">
+      <textarea id="test-texte" dir="auto" placeholder="Écris ta réponse…"></textarea>
+      <button id="test-envoyer">Valider</button>
+    </div>
+    <p class="erreur" id="erreur-test"></p>
+    <button id="test-fin" class="secondaire" hidden>Retour</button>
   </section>
 
   <section id="ecran-seance" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
@@ -97,7 +115,7 @@ async function api(chemin, corps) {
 }
 
 function afficher(ecran) {
-  for (const id of ["ecran-code", "ecran-accueil", "ecran-seance"]) $(id).hidden = id !== ecran;
+  for (const id of ["ecran-code", "ecran-accueil", "ecran-seance", "ecran-test"]) $(id).hidden = id !== ecran;
 }
 
 function choisirProfil(p) {
@@ -193,18 +211,82 @@ async function occupe(action, zoneErreur) {
   finally { occupeEnCours = false; document.querySelectorAll("button").forEach((b) => (b.disabled = false)); }
 }
 
-async function demarrer() {
-  try {
-    const eleve = await api("/eleve/moi");
-    $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
-    afficher("ecran-accueil");
-  } catch { afficher("ecran-code"); }
+// Accueil : position dans le parcours, et les boutons utiles à ce moment-là.
+function accueil(eleve) {
+  const DERNIER_PALIER = eleve.dernier_palier;
+  $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
+  const positionne = eleve.palier !== null && eleve.palier !== undefined;
+  $("mon-palier").textContent = positionne ? `Ton palier : ${eleve.palier}/${DERNIER_PALIER} · ${eleve.titre_palier}` : "";
+  $("mon-palier").dir = "auto";
+  $("invite-positionnement").hidden = positionne;
+  $("test-positionnement").hidden = positionne;
+  $("commencer").hidden = !positionne;
+  $("test-passage").hidden = !positionne || eleve.palier >= DERNIER_PALIER;
+  afficher("ecran-accueil");
 }
 
+async function demarrer() {
+  try { accueil(await api("/eleve/moi")); } catch { afficher("ecran-code"); }
+}
+
+// --- Tests de positionnement et de passage (corrigés automatiquement) ---
+let testId = null;
+function poserQuestion(q) {
+  $("test-progression").textContent = `Palier ${q.palier} · ${q.titre_palier} · question ${q.numero}`;
+  // Les choix s'affichent en boutons : on les retire de l'énoncé affiché.
+  const enonce = q.choix.length ? q.enonce.replace(/\s*\([^()]*\/[^()]*\)\s*$/, "") : q.enonce;
+  $("test-question").textContent = enonce;
+  $("test-question").appendChild(boutonEcouter(q.enonce));
+  if (profil === "P1") parler(q.enonce);
+  const zone = $("test-choix"); zone.innerHTML = "";
+  for (const c of q.choix) {
+    const b = document.createElement("button");
+    b.textContent = c; b.dir = "auto";
+    b.style.cssText = "background:var(--choix);color:var(--texte);border:2px solid var(--choix-bord);min-width:88px;font-size:1.6rem";
+    b.onclick = () => repondreTest(c);
+    const option = document.createElement("div"); option.className = "option";
+    option.append(b, boutonEcouter(c)); zone.appendChild(option);
+  }
+  $("test-saisie").hidden = q.choix.length > 0;  // exercices à choix : boutons seulement
+  $("test-texte").value = "";
+}
+
+async function lancerTest(type) {
+  await occupe(async () => {
+    const r = await api("/eleve/tests", { type });
+    testId = r.test_id;
+    $("test-retour").textContent = ""; $("test-fin").hidden = true; $("erreur-test").textContent = "";
+    afficher("ecran-test"); poserQuestion(r.question);
+  }, "erreur-accueil");
+}
+$("test-positionnement").onclick = () => lancerTest("positionnement");
+$("test-passage").onclick = () => lancerTest("passage");
+
+function repondreTest(texte) {
+  texte = (texte || "").trim(); if (!texte) return;
+  return occupe(async () => {
+    const r = await api(`/eleve/tests/${testId}/reponses`, { reponse: texte });
+    const retour = { juste: "✓ أَحْسَنْتَ!", faux: "✗", a_vocaliser: "اُكْتُبِ الجَوَابَ بِالشَّكْلِ" }[r.verdict];
+    $("test-retour").textContent = retour; $("test-retour").dir = "auto";
+    if (r.resultat) return finTest(r.resultat);
+    if (r.question) poserQuestion(r.question);
+  }, "erreur-test");
+}
+$("test-envoyer").onclick = () => repondreTest($("test-texte").value);
+
+function finTest(res) {
+  $("test-choix").innerHTML = ""; $("test-saisie").hidden = true;
+  $("test-question").textContent = res.statut === "a_confirmer"
+    ? `Bravo ! 🎉 Ton parent va confirmer ton palier : ${res.titre_palier}.`
+    : "Pas encore… Continue à t'entraîner avec le tuteur, tu pourras réessayer. 💪";
+  $("test-progression").textContent = "Test terminé";
+  $("test-fin").hidden = false;
+}
+$("test-fin").onclick = () => demarrer();
+
 $("valider-code").onclick = () => occupe(async () => {
-  const eleve = await api("/eleve/connexion", { code: $("code").value.trim() });
-  $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
-  afficher("ecran-accueil");
+  await api("/eleve/connexion", { code: $("code").value.trim() });
+  accueil(await api("/eleve/moi"));
 }, "erreur-code");
 
 $("commencer").onclick = () => occupe(async () => {
@@ -240,7 +322,7 @@ $("terminer").onclick = () => occupe(async () => {
 
 function finDeSeance() {
   $("choix").innerHTML = "";
-  setTimeout(() => afficher("ecran-accueil"), 6000);
+  setTimeout(() => demarrer(), 6000);
 }
 
 demarrer();

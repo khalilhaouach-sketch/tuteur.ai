@@ -180,19 +180,19 @@ LIMITES
 - Tu ne prétends pas être un humain.
 ```
 
-### Profil P1 : CP, arabe (lecture et écriture)
+### Profil P1 : style « enfant » (lecture et écriture)
 
 ```
 [SOCLE COMMUN]
 
-PROFIL : élève de CP, il apprend à lire et à écrire l'arabe.
+PROFIL : jeune enfant (style « enfant ») qui apprend à lire et à écrire l'arabe. Son palier dans le parcours et la leçon à travailler sont indiqués dans sa mémoire, au début de la séance.
 
 LANGUE
 - Tout texte arabe est entièrement vocalisé (التشكيل).
 - Consignes en arabe très simple, une phrase courte à la fois. Si l'enfant semble perdu, tu reformules avec des mots encore plus simples, toujours en arabe.
 
 CONTENU
-- Lettres et leurs formes (début, milieu, fin de mot), voyelles brèves, syllabes, mots simples, premières phrases, tracé des lettres.
+- Le contenu de son palier : d'abord les lettres et leurs formes (début, milieu, fin de mot), les voyelles brèves, les syllabes, puis les mots simples, les premières phrases, le tracé des lettres et les premières notions de grammaire.
 
 MÉTHODE
 - Séances courtes sous forme de jeux : trouver la lettre, associer un son à un mot, compléter un mot.
@@ -202,12 +202,12 @@ MÉTHODE
 - Tu termines par un mini-récapitulatif : la lettre ou le mot du jour.
 ```
 
-### Profil P2 : 1ʳᵉ année collège (1AC), arabe
+### Profil P2 : style « adolescent »
 
 ```
 [SOCLE COMMUN]
 
-PROFIL : élève de 1ʳᵉ année du collège. La matière est l'arabe, et uniquement l'arabe.
+PROFIL : adolescent (style « adolescent »). La matière est l'arabe, et uniquement l'arabe. Son palier dans le parcours et la leçon à travailler sont indiqués dans sa mémoire, au début de la séance.
 
 CONTENU : النحو والصرف، الإملاء، فهم النص، التعبير.
 
@@ -222,15 +222,37 @@ MÉTHODE
 - Tu ne fournis jamais le corrigé complet d'un devoir noté.
 ```
 
+## Parcours unique en paliers (phase 6)
+
+Le contenu n'est plus organisé par classe : un seul parcours ordonné va des lettres du CP à la 1AC, en 10 paliers
+(`agent/parcours.yaml`). Le **profil** (P1, P2) ne désigne plus une classe mais un **style** : P1 « enfant »
+(grosses lettres, voix, boutons, séances de 20 min) et P2 « adolescent » (séances de 45 min).
+
+| Paliers | Contenu |
+| --- | --- |
+| 1 à 3 | Les 28 lettres du CP |
+| 4 à 6 | Transition : voyelles et syllabes, lecture de mots et de phrases, premières notions de grammaire |
+| (à compléter) | Le primaire (2AP à 6AP) |
+| 7 à 10 | Les 23 leçons de langue de la 1AC |
+
+- **Positionnement** : au départ, un test place l'enfant (3 questions par palier, on monte tant qu'il en réussit 2 sur 3).
+- **Passage** : une question par leçon du palier ; réussi à partir de 80 %. L'enfant peut le tenter quand il veut :
+  un enfant rapide valide plusieurs paliers d'affilée.
+- **Confirmation** : chaque résultat de test est confirmé (ou refusé) par le parent ; le parent peut aussi placer
+  l'enfant lui-même sur un palier.
+- **Révision** : le tuteur peut reprendre les leçons des paliers précédents, jamais celles des paliers suivants.
+- Les tests sont corrigés automatiquement avec les banques d'exercices, sans l'agent.
+
 ## Plan de construction avec Claude Code
 
-Avance en cinq phases et ne passe à la suivante que lorsque le critère de la phase en cours est atteint.
+Avance en six phases et ne passe à la suivante que lorsque le critère de la phase en cours est atteint.
 
 1. **Fondations.** Dossier, `SPEC.md`, `CLAUDE.md`, base de données, comptes parent et élève. Critère : un parent crée un compte et un sous-compte élève.
 2. **MVP arabe collège (profil P2, 1AC).** Agent, six outils, mémoire élève. Critère : une séance complète, de l'accueil au bilan, enregistrée en base.
 3. **Cours et programme.** Ingestion de `docs/` pour la recherche dans tes cours. Critère : l'agent s'appuie sur le bon passage du programme.
 4. **Espace parent et sécurité.** Tableau de bord, journal des échanges, limites de séance. Critère : un parent voit la progression et le journal.
 5. **CP arabe avec voix.** Synthèse vocale, reconnaissance vocale, mode visuel. Critère : un enfant de CP termine un jeu de lecture, et les tests de `evals/` passent pour les deux profils.
+6. **Parcours unique en paliers.** Positionnement, tests de passage, confirmation du parent, style selon l'âge. Critère : un enfant est positionné, puis passe au palier suivant après confirmation du parent.
 
 Avant l'ouverture au public, un pilote avec quelques élèves réels, sous ta supervision.
 

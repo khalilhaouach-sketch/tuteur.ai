@@ -82,9 +82,14 @@ def choix_en_cours(db, seance_id: int) -> list[str]:
 
 @router.post("/eleve/seances", status_code=status.HTTP_201_CREATED)
 def commencer(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db), tuteur=Depends(get_tuteur)):
-    (profil,) = db.execute("SELECT profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
+    profil, palier = db.execute("SELECT profil, palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
     if profil not in PROFILS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ce profil sera bientôt disponible.")
+    if palier is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Fais d'abord le petit test pour savoir où tu en es (ou demande à ton parent de choisir ton palier).",
+        )
     pause = limites.pause_restante(db, eleve_id)
     if pause:
         raise HTTPException(

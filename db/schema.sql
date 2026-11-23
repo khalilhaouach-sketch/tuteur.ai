@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS eleves (
     id        INTEGER PRIMARY KEY,
     parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
     prenom    TEXT    NOT NULL CHECK (length(prenom) BETWEEN 1 AND 30),
-    profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- P1 : CP, P2 : 1re année collège
+    profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- style : P1 enfant, P2 adolescent
+    palier    INTEGER,                         -- position dans le parcours (NULL : pas encore positionné)
     cree_le   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);
@@ -68,6 +69,20 @@ CREATE TABLE IF NOT EXISTS maitrise (
     prochaine_revision TEXT,
     PRIMARY KEY (eleve_id, notion_id)
 );
+
+-- Tests de positionnement et de passage de palier (sans l'agent : correction automatique).
+CREATE TABLE IF NOT EXISTS tests_palier (
+    id              INTEGER PRIMARY KEY,
+    eleve_id        INTEGER NOT NULL REFERENCES eleves(id) ON DELETE CASCADE,
+    type            TEXT    NOT NULL CHECK (type IN ('positionnement', 'passage')),
+    etat            TEXT    NOT NULL,              -- JSON : questions, réponses, palier en cours
+    statut          TEXT    NOT NULL CHECK (statut IN ('en_cours', 'a_confirmer', 'echoue', 'confirme', 'refuse', 'abandonne')),
+    palier_propose  INTEGER,                       -- palier où placer l'élève si le parent confirme
+    score           REAL,
+    cree_le         TEXT    NOT NULL,
+    fini_le         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tests_eleve ON tests_palier(eleve_id, statut);
 
 -- Alertes pour le parent (détresse exprimée par l'élève).
 CREATE TABLE IF NOT EXISTS alertes (

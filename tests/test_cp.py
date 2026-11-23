@@ -9,6 +9,7 @@ from tests.faux_claude import outil, reponse, texte
 def _enfant_cp(client, appareil_eleve):
     inscrire(client)
     eleve = client.post("/eleves", json={"prenom": "Adam", "profil": "P1"}).json()
+    assert client.put(f"/eleves/{eleve['id']}/palier", json={"palier": 1}).status_code == 200
     code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
     assert appareil_eleve.post("/eleve/connexion", json={"code": code}).status_code == 200
     return eleve
@@ -35,8 +36,8 @@ def test_seance_cp_avec_boutons(client, appareil_eleve, faux_tuteur):
     r = appareil_eleve.post("/eleve/seances").json()
     assert r["profil"] == "P1" and r["choix"] == []
     # Le tuteur du CP utilise le prompt du CP, et la mémoire propose la première lettre du programme.
-    assert "PROFIL : élève de CP" in faux.appels[0]["system"]
-    assert "Lettre suivante dans le programme : حرف الميم" in faux.appels[0]["messages"][-1]["content"]
+    assert "PROFIL : jeune enfant" in faux.appels[0]["system"]
+    assert "Leçon suivante dans le parcours : حرف الميم" in faux.appels[0]["messages"][-1]["content"]
 
     s = r["seance_id"]
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "نَعَمْ"}).json()
@@ -55,7 +56,7 @@ def test_lettre_suivante_apres_une_lettre_acquise(client, appareil_eleve, faux_t
     conn.commit()
     faux = faux_tuteur([reponse(texte("مَرْحَبًا"))])
     appareil_eleve.post("/eleve/seances")
-    assert "Lettre suivante dans le programme : حرف الباء" in faux.appels[0]["messages"][-1]["content"]
+    assert "Leçon suivante dans le parcours : حرف الباء" in faux.appels[0]["messages"][-1]["content"]
 
 
 def test_seance_cp_limitee_a_20_minutes():

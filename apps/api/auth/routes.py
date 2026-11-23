@@ -83,7 +83,10 @@ class CodeAcces(BaseModel):
 class Eleve(BaseModel):
     id: int
     prenom: str
-    profil: str
+    profil: str  # style : P1 enfant, P2 adolescent
+    palier: int | None = None
+    titre_palier: str | None = None
+    dernier_palier: int | None = None
 
 
 # --- Qui est connecté ? --------------------------------------------------------
@@ -184,7 +187,7 @@ def _eleve_du_parent(db: sqlite3.Connection, eleve_id: int, parent_id: int) -> s
 @router.get("/eleves", response_model=list[Eleve], tags=["élèves"])
 def lister_eleves(parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     lignes = db.execute(
-        "SELECT id, prenom, profil FROM eleves WHERE parent_id = ? ORDER BY id", (parent_id,)
+        "SELECT id, prenom, profil, palier FROM eleves WHERE parent_id = ? ORDER BY id", (parent_id,)
     ).fetchall()
     return [dict(l) for l in lignes]
 
@@ -249,5 +252,9 @@ def connecter_eleve(
 
 @router.get("/eleve/moi", response_model=Eleve, tags=["espace élève"])
 def eleve_actuel(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db)):
-    ligne = db.execute("SELECT id, prenom, profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
-    return dict(ligne)
+    from agent import parcours
+
+    ligne = dict(db.execute("SELECT id, prenom, profil, palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone())
+    ligne["titre_palier"] = parcours.palier(ligne["palier"])["titre"] if ligne["palier"] else None
+    ligne["dernier_palier"] = parcours.DERNIER
+    return ligne

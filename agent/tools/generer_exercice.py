@@ -6,7 +6,7 @@ from agent.tools.donnees_exemple import NOTIONS
 DEFINITION = {
     "name": "generer_exercice",
     "description": (
-        "Propose un exercice sur une notion du niveau de l'élève, au niveau de difficulté demandé (1 facile, 2 moyen, 3 difficile). "
+        "Propose un exercice sur une notion du palier de l'élève (ou d'un palier précédent, pour réviser), au niveau de difficulté demandé (1 facile, 2 moyen, 3 difficile). "
         "Renvoie l'énoncé à présenter tel quel à l'élève et un exercice_id à passer ensuite à corriger. "
         "Le corrigé n'est pas fourni : seul l'outil corriger le connaît. "
         "Indique aussi les erreurs récentes de l'élève sur cette notion. Si « choix » n'est pas vide, les choix "
@@ -25,9 +25,14 @@ DEFINITION = {
 def executer(ctx, entree: dict) -> dict:
     notion = notion_valide(entree["notion"])
     difficulte = entree["difficulte"]
-    if NOTIONS[notion]["niveau"] != ctx.profil:
-        niveau = [n for n, d in NOTIONS.items() if d["niveau"] == ctx.profil]
-        raise ErreurOutil(f"notion hors du niveau de l'élève. Notions de son niveau : {', '.join(niveau)}")
+    from agent import parcours
+
+    numero = palier_de_l_eleve(ctx)
+    if notion not in parcours.notions_accessibles(numero):
+        actuelles = parcours.palier(numero)["notions"]
+        raise ErreurOutil(
+            f"notion au-delà du palier de l'élève (palier {numero}). Notions de son palier : {', '.join(actuelles)}"
+        )
     nid = notion_id(ctx.db, notion)
 
     deja_reussis = {
@@ -60,3 +65,8 @@ def executer(ctx, entree: dict) -> dict:
         "choix": choix_de_l_enonce(choisi["enonce"]),
         "erreurs_recentes": erreurs_recentes,
     }
+
+
+def palier_de_l_eleve(ctx) -> int:
+    ligne = ctx.db.execute("SELECT palier FROM eleves WHERE id = ?", (ctx.eleve_id,)).fetchone()
+    return (ligne["palier"] if ligne and ligne["palier"] else None) or 1
