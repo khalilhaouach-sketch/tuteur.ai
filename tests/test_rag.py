@@ -165,3 +165,18 @@ def test_chaque_notion_a_exercices_a_un_cours(base_indexee):
     for notion in NOTIONS:  # lettres, transition et 1AC : chaque leçon a un cours dans docs/cours/
         passages = chercher(base_indexee, notion)
         assert any(r["reference"].startswith("docs/cours/") for r in passages[:2]), notion
+
+
+@pytest.mark.parametrize("question, lecon", [
+    ("اسم المكان", "اسم المكان"),
+    ("ظرف المكان", "المفعول فيه"),
+    ("الاسم المنقوص", "المنقوص"),
+    ("جمع التكسير", "أنواع الجمع"),
+    ("كان وأخواتها", "كان وأخواتها"),
+    ("ظن وأخواتها", "ظنّ وأخواتها"),
+])
+def test_lecons_du_primaire_retrouvees(base_indexee, question, lecon):
+    """Les leçons proches (اسم المكان / ظرف المكان, كان / ظنّ وأخواتها) ne se font pas d'ombre."""
+    from rag.arabe import normaliser
+
+    assert normaliser(lecon) in normaliser(chercher(base_indexee, question)[0]["reference"])
