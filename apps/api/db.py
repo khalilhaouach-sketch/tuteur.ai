@@ -32,6 +32,7 @@ def initialiser() -> None:
     try:
         conn.executescript(SCHEMA.read_text(encoding="utf-8"))
         _ajouter_colonnes_manquantes(conn)
+        _paliers_en_identifiants(conn)
         conn.commit()
     finally:
         conn.close()
@@ -40,7 +41,7 @@ def initialiser() -> None:
 # Colonnes ajoutées après la création des premières bases (en attendant de vraies migrations).
 _COLONNES_AJOUTEES = {
     "seances": {"fin_raison": "TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle'))"},
-    "eleves": {"palier": "INTEGER"},
+    "eleves": {"palier": "TEXT"},
 }
 
 
@@ -67,3 +68,16 @@ def get_db():
 
 def dans(**delai) -> str:
     return iso(maintenant() + timedelta(**delai))
+
+
+def _paliers_en_identifiants(conn: sqlite3.Connection) -> None:
+    """Bases de la première version : le palier était un numéro ; on le remplace par son identifiant fixe."""
+    from agent.parcours import ANCIENS_IDS
+
+    for table, colonne in (("eleves", "palier"), ("tests_palier", "palier_propose")):
+        for numero, palier_id in enumerate(ANCIENS_IDS, 1):
+            conn.execute(
+                # Numéro stocké comme nombre (ancienne colonne INTEGER) ou comme texte (colonne TEXT).
+                f"UPDATE {table} SET {colonne} = ? WHERE CAST({colonne} AS TEXT) = ?",
+                (palier_id, str(numero)),
+            )

@@ -1,7 +1,7 @@
 # Parcours d'arabe en paliers (du CP à la 1AC)
 
-> Généré à partir de agent/parcours.yaml. Un enfant avance en réussissant le test de passage d'un palier
-> (80 %), confirmé par le parent. À compléter : paliers du primaire (2AP à 6AP).
+> Généré à partir de agent/parcours.yaml (`python3 -m agent.parcours`). Un enfant avance en réussissant
+> le test de passage d'un palier (80 %), confirmé par le parent.
 
 ## Palier 1 : الحروف (1)
 
@@ -39,25 +39,31 @@ Transition : أنواع الكلمة، الجملة، المذكر والمؤن�
 
 Leçons : الاسم والفعل والحرف، الجملة الاسمية والجملة الفعلية، المذكر والمؤنث، المفرد والمثنى والجمع.
 
-## Palier 7 : الصرف (1AC)
+## Palier 7 : الجملة الفعلية والجملة الاسمية (3AP)
+
+Primaire 3AP : الفاعل، المفعول به، المبتدأ والخبر، حروف الجر، تصريف المضارع
+
+Leçons : الفاعل، المفعول به، المبتدأ والخبر، حروف الجر والاسم المجرور، تصريف المضارع مع الضمائر.
+
+## Palier 8 : الصرف (1AC)
 
 1AC semestre 1 : الميزان الصرفي et تصريف الأفعال
 
 Leçons : الميزان الصرفي، مزيد الثلاثي والرباعي، الفعل الصحيح، المثال والأجوف، الفعل الناقص، اللفيف.
 
-## Palier 8 : الإعراب والبناء (1AC)
+## Palier 9 : الإعراب والبناء (1AC)
 
 1AC semestre 1 : إعراب et بناء
 
 Leçons : الإعراب والبناء، الأسماء المعربة والمبنية، علامات البناء في الأفعال، إعراب الفعل المضارع، جزم الفعل المضارع.
 
-## Palier 9 : المعارف (1AC)
+## Palier 10 : المعارف (1AC)
 
 1AC semestre 2 : النكرة والمعرفة، الضمائر، الإشارة، الموصول
 
 Leçons : النكرة والمعرفة، العلم، الضمير البارز والمستتر، الضمير المتصل، الضمير المنفصل، أسماء الإشارة، الاسم الموصول.
 
-## Palier 10 : الجملة (1AC)
+## Palier 11 : الجملة (1AC)
 
 1AC semestre 2 : المبتدأ والخبر، المتعدي، المبني للمجهول
 

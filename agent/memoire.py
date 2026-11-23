@@ -51,8 +51,7 @@ def _parcours(db: sqlite3.Connection, eleve_id: int) -> list[str]:
     """Position de l'élève dans le parcours et prochaine leçon à travailler."""
     from agent import parcours
 
-    (numero,) = db.execute("SELECT palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
-    numero = numero or 1
+    numero = parcours.palier_eleve(db, eleve_id) or 1
     p = parcours.palier(numero)
     acquises = {
         r["intitule"]

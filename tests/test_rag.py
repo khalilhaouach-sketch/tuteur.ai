@@ -40,6 +40,10 @@ def test_prefixes_retires():
     assert racine_legere("والفاعل") == "فاعل"
     assert racine_legere("الباء") == "باء"
     assert racine_legere("بال") == "بال"  # mot trop court : inchangé
+    from rag.arabe import formes, sans_suffixe
+
+    assert sans_suffixe("جزمه") == "جزم" and sans_suffixe("كتب") == "كتب"
+    assert "جزم" in formes("وجزمه")
     assert requete_fts("ما هو ؟") is None  # seulement des mots vides
 
 

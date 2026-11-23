@@ -31,9 +31,11 @@ def _repondre(appareil_eleve, test_id, juste):
 
 
 def test_parcours_bien_forme():
-    assert parcours.DERNIER == 10 and parcours.SEUIL_PASSAGE == 0.8
-    assert [p["numero"] for p in parcours.PALIERS] == list(range(1, 11))
-    assert parcours.palier_de("حرف الميم") == 1 and parcours.palier_de("المبني للمجهول") == 10
+    assert parcours.DERNIER == 11 and parcours.SEUIL_PASSAGE == 0.8
+    assert [p["numero"] for p in parcours.PALIERS] == list(range(1, parcours.DERNIER + 1))
+    assert parcours.palier_de("حرف الميم") == 1 and parcours.palier_de("المبني للمجهول") == parcours.DERNIER
+    # Ordre : lettres, transition, primaire, 1AC.
+    assert [p["id"] for p in parcours.PALIERS][5:8] == ["transition-3", "primaire-3ap", "1ac-1"]
     assert parcours.notions_accessibles(1) == parcours.palier(1)["notions"]
 
 
@@ -154,15 +156,15 @@ def test_parcours_reserve_au_bon_parent(client, appareil_eleve):
 
 def test_palier_hors_parcours_refuse(client, appareil_eleve):
     eleve = _enfant(client, appareil_eleve)
-    assert client.put(f"/eleves/{eleve['id']}/palier", json={"palier": 11}).status_code == 422
+    assert client.put(f"/eleves/{eleve['id']}/palier", json={"palier": parcours.DERNIER + 1}).status_code == 422
 
 
 def test_memoire_donne_le_palier(client, appareil_eleve, faux_tuteur):
-    _enfant(client, appareil_eleve, profil="P2", palier=7)
+    _enfant(client, appareil_eleve, profil="P2", palier=parcours.palier_de("الميزان الصرفي"))
     faux = faux_tuteur([reponse(texte("مرحبًا"))])
     appareil_eleve.post("/eleve/seances")
     memoire = faux.appels[0]["messages"][-1]["content"]
-    assert "Palier actuel dans le parcours : 7/10 « الصرف (1AC) »" in memoire
+    assert f"Palier actuel dans le parcours : 8/{parcours.DERNIER} « الصرف (1AC) »" in memoire
     # Les paliers précédents sont validés : on commence par la première leçon du palier 7.
     assert "Leçon suivante dans le parcours : الميزان الصرفي" in memoire
 
@@ -180,3 +182,22 @@ def test_page_du_parcours_a_jour():
     for p in parcours.PALIERS:
         assert f"## Palier {p['numero']} : {p['titre']}" in texte
         assert "، ".join(p["notions"]) in texte
+
+
+def test_paliers_enregistres_par_identifiant(client, appareil_eleve):
+    """La base garde l'identifiant fixe du palier : insérer un palier ne déplace pas les enfants."""
+    eleve = _enfant(client, appareil_eleve, palier=4)
+    assert db.ouvrir().execute("SELECT palier FROM eleves WHERE id = ?", (eleve["id"],)).fetchone()[0] == "transition-1"
+    assert appareil_eleve.get("/eleve/moi").json()["palier"] == 4
+
+
+def test_anciennes_bases_converties(tmp_path, monkeypatch):
+    """Une base de la première version (palier = numéro) est convertie au démarrage."""
+    monkeypatch.setenv("TUTEUR_DB", str(tmp_path / "ancienne.db"))
+    db.initialiser()
+    conn = db.ouvrir()
+    conn.execute("INSERT INTO parents (email, mot_de_passe_hash, consentement_le, cree_le) VALUES ('a@b.ma', 'x', 'd', 'd')")
+    conn.execute("INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) VALUES (1, 'Sara', 'P1', 7, 'd')")
+    conn.commit()
+    db.initialiser()
+    assert db.ouvrir().execute("SELECT palier FROM eleves").fetchone()[0] == "1ac-1"

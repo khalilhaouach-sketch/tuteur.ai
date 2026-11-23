@@ -308,7 +308,7 @@ def test_outils_limites_a_l_eleve_de_la_seance(client, appareil_eleve, eleve_con
     ctx = _ctx(eleve_connecte["id"], s)
     executer(ctx, "corriger", {"exercice_id": "mudari3-1", "reponse": "التلميذ"})
     autre_id = ctx.db.execute(
-        "INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) SELECT parent_id, 'Adam', 'P2', 10, cree_le"
+        "INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) SELECT parent_id, 'Adam', 'P2', '1ac-4', cree_le"
         " FROM eleves WHERE id = ?", (eleve_connecte["id"],)).lastrowid
     autre = Contexte(db=ctx.db, eleve_id=autre_id, seance_id=s, profil="P2")
     assert executer(autre, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 1})["erreurs_recentes"] == []
@@ -330,8 +330,8 @@ def test_banque_1ac_complete():
 
     from agent import parcours
 
-    # 28 lettres + 11 leçons de transition + 23 leçons de 1AC, chacune dans un palier du parcours.
-    assert len(NOTIONS) == 62 and len(EXERCICES) == 3 * 62
+    # 28 lettres + 11 leçons de transition + 5 du primaire + 23 de 1AC, chacune dans un palier du parcours.
+    assert len(NOTIONS) == 67 and len(EXERCICES) == 3 * 67
     assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
         assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
@@ -362,7 +362,7 @@ def test_exercices_limites_au_palier_de_l_eleve(client, appareil_eleve, eleve_co
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)  # au dernier palier : peut réviser les lettres du CP
     assert executer(ctx, "generer_exercice", {"notion": "حرف الباء", "difficulte": 1})["exercice_id"] == "cp-02-1"
-    ctx.db.execute("UPDATE eleves SET palier = 1 WHERE id = ?", (eleve_connecte["id"],))
+    ctx.db.execute("UPDATE eleves SET palier = 'lettres-1' WHERE id = ?", (eleve_connecte["id"],))
     try:  # au palier 1 : pas de leçon d'un palier suivant
         executer(ctx, "generer_exercice", {"notion": "إعراب الفعل المضارع", "difficulte": 1})
         assert False, "une leçon d'un palier suivant a été proposée"

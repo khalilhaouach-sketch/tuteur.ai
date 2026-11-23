@@ -1,11 +1,12 @@
 # Parcours unique d'arabe : du CP à la 1AC, en paliers (ordre = progression).
+# Chaque palier a un identifiant fixe (enregistré pour chaque élève) ; son numéro vient de sa position.
 # Chaque palier regroupe des notions (leçons) des banques d'exercices de agent/tools/.
 # Un élève avance en réussissant le test de passage du palier (80 %), confirmé par le parent.
-# À COMPLÉTER : paliers du primaire (2AP à 6AP) entre « مبادئ النحو » et la 1AC.
+# EN COURS : paliers du primaire (2AP à 6AP) entre « مبادئ النحو » et la 1AC, ajoutés palier par palier.
 
 seuil_passage: 0.8
 paliers:
-- numero: 1
+- id: lettres-1
   titre: الحروف (1)
   description: Lettres du CP, unités 1 et 2
   notions:
@@ -17,7 +18,7 @@ paliers:
   - حرف اللام
   - حرف النون
   - حرف التاء
-- numero: 2
+- id: lettres-2
   titre: الحروف (2)
   description: Lettres du CP, unité 3
   notions:
@@ -29,7 +30,7 @@ paliers:
   - حرف الحاء
   - حرف القاف
   - حرف الصاد
-- numero: 3
+- id: lettres-3
   titre: الحروف (3)
   description: Lettres du CP, unités 4 et 5
   notions:
@@ -45,7 +46,7 @@ paliers:
   - حرف الذال
   - حرف الضاد
   - حرف الظاء
-- numero: 4
+- id: transition-1
   titre: الحركات والمقاطع
   description: 'Transition : voyelles, المدود، التنوين، الشدة والسكون'
   notions:
@@ -53,14 +54,14 @@ paliers:
   - المدود
   - التنوين
   - الشدة والسكون
-- numero: 5
+- id: transition-2
   titre: قراءة الكلمات والجمل
   description: 'Transition : اللام الشمسية والقمرية، التاء، فهم الجملة'
   notions:
   - اللام الشمسية واللام القمرية
   - التاء المربوطة والتاء المفتوحة
   - فهم الجملة
-- numero: 6
+- id: transition-3
   titre: مبادئ النحو
   description: 'Transition : أنواع الكلمة، الجملة، المذكر والمؤنث، العدد'
   notions:
@@ -68,7 +69,16 @@ paliers:
   - الجملة الاسمية والجملة الفعلية
   - المذكر والمؤنث
   - المفرد والمثنى والجمع
-- numero: 7
+- id: primaire-3ap
+  titre: الجملة الفعلية والجملة الاسمية (3AP)
+  description: 'Primaire 3AP : الفاعل، المفعول به، المبتدأ والخبر، حروف الجر، تصريف المضارع'
+  notions:
+  - الفاعل
+  - المفعول به
+  - المبتدأ والخبر
+  - حروف الجر والاسم المجرور
+  - تصريف المضارع مع الضمائر
+- id: 1ac-1
   titre: الصرف (1AC)
   description: '1AC semestre 1 : الميزان الصرفي et تصريف الأفعال'
   notions:
@@ -78,7 +88,7 @@ paliers:
   - المثال والأجوف
   - الفعل الناقص
   - اللفيف
-- numero: 8
+- id: 1ac-2
   titre: الإعراب والبناء (1AC)
   description: '1AC semestre 1 : إعراب et بناء'
   notions:
@@ -87,7 +97,7 @@ paliers:
   - علامات البناء في الأفعال
   - إعراب الفعل المضارع
   - جزم الفعل المضارع
-- numero: 9
+- id: 1ac-3
   titre: المعارف (1AC)
   description: '1AC semestre 2 : النكرة والمعرفة، الضمائر، الإشارة، الموصول'
   notions:
@@ -98,7 +108,7 @@ paliers:
   - الضمير المنفصل
   - أسماء الإشارة
   - الاسم الموصول
-- numero: 10
+- id: 1ac-4
   titre: الجملة (1AC)
   description: '1AC semestre 2 : المبتدأ والخبر، المتعدي، المبني للمجهول'
   notions:

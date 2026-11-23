@@ -189,7 +189,9 @@ def lister_eleves(parent_id: int = Depends(parent_connecte), db=Depends(get_db))
     lignes = db.execute(
         "SELECT id, prenom, profil, palier FROM eleves WHERE parent_id = ? ORDER BY id", (parent_id,)
     ).fetchall()
-    return [dict(l) for l in lignes]
+    from agent import parcours
+
+    return [{**dict(l), "palier": parcours.numero_de(l["palier"])} for l in lignes]
 
 
 @router.post(
@@ -255,6 +257,7 @@ def eleve_actuel(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db)):
     from agent import parcours
 
     ligne = dict(db.execute("SELECT id, prenom, profil, palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone())
+    ligne["palier"] = parcours.numero_de(ligne["palier"])
     ligne["titre_palier"] = parcours.palier(ligne["palier"])["titre"] if ligne["palier"] else None
     ligne["dernier_palier"] = parcours.DERNIER
     return ligne

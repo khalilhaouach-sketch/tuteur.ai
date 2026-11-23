@@ -25,13 +25,15 @@ OUTILS_LISIBLES = {
 def tableau(parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     """Les élèves du parent, avec leurs alertes non lues et leur dernière séance."""
     lignes = db.execute(
-        "SELECT e.id, e.prenom, e.profil,"
+        "SELECT e.id, e.prenom, e.profil, e.palier,"
         " (SELECT COUNT(*) FROM alertes a WHERE a.eleve_id = e.id AND a.vue_le IS NULL) AS alertes,"
         " (SELECT MAX(debut) FROM seances s WHERE s.eleve_id = e.id) AS derniere_seance"
         " FROM eleves e WHERE e.parent_id = ? ORDER BY e.id",
         (parent_id,),
     ).fetchall()
-    return [dict(l) for l in lignes]
+    from agent import parcours
+
+    return [{**dict(l), "palier": parcours.numero_de(l["palier"])} for l in lignes]
 
 
 @router.get("/eleves/{eleve_id}/progression")

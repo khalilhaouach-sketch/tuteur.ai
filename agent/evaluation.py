@@ -51,7 +51,7 @@ def question_publique(exercice_id: str) -> dict:
 
 def commencer(db: sqlite3.Connection, eleve_id: int, type_test: str, graine: int | None = None) -> int:
     hasard = random.Random(graine)
-    (palier_actuel,) = db.execute("SELECT palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
+    palier_actuel = parcours.palier_eleve(db, eleve_id)
     if type_test == "passage":
         if palier_actuel is None:
             raise TestImpossible("Fais d'abord le test pour savoir où tu en es.")
@@ -128,7 +128,7 @@ def repondre(db: sqlite3.Connection, test: sqlite3.Row, reponse: str) -> dict:
 
     db.execute(
         "UPDATE tests_palier SET etat = ?, statut = ?, palier_propose = ?, score = ?, fini_le = ? WHERE id = ?",
-        (json.dumps(etat, ensure_ascii=False), statut, propose, score,
+        (json.dumps(etat, ensure_ascii=False), statut, parcours.id_de(propose), score,
          None if statut == "en_cours" else maintenant_iso(), test["id"]),
     )
     test = db.execute("SELECT id, type, etat, statut, palier_propose, score FROM tests_palier WHERE id = ?",
@@ -151,6 +151,7 @@ def confirmer(db: sqlite3.Connection, test_id: int, eleve_id: int, accepte: bool
         "UPDATE tests_palier SET statut = ? WHERE id = ?", ("confirme" if accepte else "refuse", test_id)
     )
     if accepte:
-        db.execute("UPDATE eleves SET palier = ? WHERE id = ?", (test["palier_propose"], eleve_id))
-        return test["palier_propose"]
+        numero = parcours.numero_de(test["palier_propose"])
+        parcours.fixer_palier(db, eleve_id, numero)
+        return numero
     return None

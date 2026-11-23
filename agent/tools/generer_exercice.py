@@ -68,5 +68,6 @@ def executer(ctx, entree: dict) -> dict:
 
 
 def palier_de_l_eleve(ctx) -> int:
-    ligne = ctx.db.execute("SELECT palier FROM eleves WHERE id = ?", (ctx.eleve_id,)).fetchone()
-    return (ligne["palier"] if ligne and ligne["palier"] else None) or 1
+    from agent import parcours
+
+    return parcours.palier_eleve(ctx.db, ctx.eleve_id) or 1

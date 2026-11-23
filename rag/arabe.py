@@ -7,6 +7,8 @@ _REMPLACEMENTS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا", 
 _MOT = re.compile(r"[\w]+", re.UNICODE)
 # Préfixes retirés pour retrouver « الفاعل », « والفاعل », « فاعل » avec la même recherche.
 _PREFIXES = ("وال", "فال", "بال", "كال", "لل", "ال", "و", "ف", "ب", "ك", "ل")
+# Pronoms attachés en fin de mot, retirés aussi : « جزمه » -> « جزم ».
+_SUFFIXES = ("هما", "كما", "هم", "هن", "كم", "كن", "ها", "نا", "ه", "ك")
 MOTS_VIDES = {"في", "من", "على", "عن", "الى", "ما", "هو", "هي", "هل", "ان", "او", "ثم", "مع", "هذا", "هذه",
               "ذلك", "التي", "الذي", "كيف", "لماذا", "اشرح", "اريد", "لي", "عن"}
 
@@ -22,6 +24,19 @@ def racine_legere(mot: str) -> str:
     return mot
 
 
+def sans_suffixe(mot: str) -> str:
+    for s in _SUFFIXES:
+        if mot.endswith(s) and len(mot) - len(s) >= 3:
+            return mot[: -len(s)]
+    return mot
+
+
+def formes(mot: str) -> set[str]:
+    """Le mot, sans préfixe, et sans préfixe ni pronom final."""
+    r = racine_legere(mot)
+    return {mot, r, sans_suffixe(r)}
+
+
 def mots(texte: str) -> list[str]:
     return _MOT.findall(normaliser(texte))
 
@@ -31,9 +46,7 @@ def texte_indexe(texte: str) -> str:
     sortie = []
     for m in mots(texte):
         sortie.append(m)
-        r = racine_legere(m)
-        if r != m:
-            sortie.append(r)
+        sortie += sorted(formes(m) - {m})
     return " ".join(sortie)
 
 
@@ -43,6 +56,5 @@ def requete_fts(texte: str) -> str | None:
     for m in mots(texte):
         if m in MOTS_VIDES:
             continue
-        formes = {m, racine_legere(m)}
-        termes.append("(" + " OR ".join(f'"{f}"' for f in sorted(formes)) + ")")
+        termes.append("(" + " OR ".join(f'"{f}"' for f in sorted(formes(m))) + ")")
     return " OR ".join(termes) if termes else None

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS eleves (
     parent_id INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
     prenom    TEXT    NOT NULL CHECK (length(prenom) BETWEEN 1 AND 30),
     profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- style : P1 enfant, P2 adolescent
-    palier    INTEGER,                         -- position dans le parcours (NULL : pas encore positionné)
+    palier    TEXT,                            -- identifiant du palier dans le parcours (NULL : pas encore positionné)
     cree_le   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS tests_palier (
     type            TEXT    NOT NULL CHECK (type IN ('positionnement', 'passage')),
     etat            TEXT    NOT NULL,              -- JSON : questions, réponses, palier en cours
     statut          TEXT    NOT NULL CHECK (statut IN ('en_cours', 'a_confirmer', 'echoue', 'confirme', 'refuse', 'abandonne')),
-    palier_propose  INTEGER,                       -- palier où placer l'élève si le parent confirme
+    palier_propose  TEXT,                          -- identifiant du palier proposé, si le parent confirme
     score           REAL,
     cree_le         TEXT    NOT NULL,
     fini_le         TEXT

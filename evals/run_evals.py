@@ -118,7 +118,7 @@ def executer_cas(cas: dict, tuteur, profil: str = "P2") -> tuple[list[str], list
         ).lastrowid
         eleve = conn.execute(
             "INSERT INTO eleves (parent_id, prenom, profil, palier, cree_le) VALUES (?, 'Yasmine', ?, ?, ?)",
-            (parent, profil, 1 if profil == "P1" else parcours.DERNIER, maintenant),
+            (parent, profil, parcours.id_de(1 if profil == "P1" else parcours.DERNIER), maintenant),
         ).lastrowid
         seance = conn.execute("INSERT INTO seances (eleve_id, debut) VALUES (?, ?)", (eleve, maintenant)).lastrowid
         reponses = [tuteur.ouvrir_seance(conn, eleve, seance)]

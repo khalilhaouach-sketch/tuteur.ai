@@ -1,6 +1,6 @@
 """Banques d'exercices, chargées depuis les fichiers YAML de ce dossier :
-exercices_cp.yaml (lettres du CP), exercices_transition.yaml (paliers de transition)
-et exercices_1ac.yaml (1AC). Leur ordre dans le parcours est donné par agent/parcours.yaml.
+exercices_cp.yaml (lettres du CP), exercices_transition.yaml (paliers de transition),
+exercices_primaire.yaml (primaire, 2AP à 6AP) et exercices_1ac.yaml (1AC). Leur ordre dans le parcours est donné par agent/parcours.yaml.
 
 Les fichiers YAML sont la seule source : le professeur peut les relire et les corriger directement.
 Les explications des leçons viennent de docs/cours/ (outil lire_programme).
@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-FICHIERS = [Path(__file__).with_name(n) for n in ("exercices_cp.yaml", "exercices_transition.yaml", "exercices_1ac.yaml")]
+FICHIERS = [Path(__file__).with_name(n) for n in ("exercices_cp.yaml", "exercices_transition.yaml", "exercices_primaire.yaml", "exercices_1ac.yaml")]
 
 NOTIONS: dict[str, dict] = {}
 for _fichier in FICHIERS:

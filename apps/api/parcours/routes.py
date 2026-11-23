@@ -58,7 +58,7 @@ def repondre(test_id: int, donnees: Reponse, eleve_id: int = Depends(eleve_conne
 @router.get("/eleves/{eleve_id}/parcours")
 def suivi(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     _eleve_du_parent(db, eleve_id, parent_id)
-    (actuel,) = db.execute("SELECT palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
+    actuel = parcours.palier_eleve(db, eleve_id)
     maitrise = {
         r["intitule"]: r["niveau"]
         for r in db.execute(
@@ -74,7 +74,8 @@ def suivi(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(g
         paliers.append({"numero": p["numero"], "titre": p["titre"], "description": p["description"],
                         "etat": etat, "lecons": len(p["notions"]), "lecons_acquises": acquises})
     tests = [
-        {**dict(t), "titre_palier": parcours.palier(t["palier_propose"])["titre"] if t["palier_propose"] else None}
+        {**dict(t), "palier_propose": parcours.numero_de(t["palier_propose"]),
+         "titre_palier": parcours.palier(parcours.numero_de(t["palier_propose"]))["titre"] if t["palier_propose"] else None}
         for t in db.execute(
             "SELECT id, type, statut, palier_propose, score, cree_le, fini_le FROM tests_palier"
             " WHERE eleve_id = ? AND statut != 'abandonne' ORDER BY id DESC LIMIT 10",
@@ -100,5 +101,5 @@ def choisir_palier(eleve_id: int, donnees: ChoixPalier,
                    parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     """Le parent place lui-même l'enfant sur un palier (sans test)."""
     _eleve_du_parent(db, eleve_id, parent_id)
-    db.execute("UPDATE eleves SET palier = ? WHERE id = ?", (donnees.palier, eleve_id))
+    parcours.fixer_palier(db, eleve_id, donnees.palier)
     return {"palier": donnees.palier}

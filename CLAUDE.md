@@ -1,7 +1,7 @@
 # Projet : tuteur IA de soutien scolaire (Maroc)
 
 ## Contexte
-Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien sur un parcours unique en 10 paliers, des lettres du CP à la 1AC (`agent/parcours.yaml`). Le profil est un style : P1 « enfant », P2 « adolescent ». Matière : arabe uniquement, ni français ni darija. Usage personnel : tuteur familial pour trois enfants (pas une application publique). Lis SPEC.md avant toute tâche.
+Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien sur un parcours unique en paliers, des lettres du CP à la 1AC (`agent/parcours.yaml`). Le profil est un style : P1 « enfant », P2 « adolescent ». Matière : arabe uniquement, ni français ni darija. Usage personnel : tuteur familial pour trois enfants (pas une application publique). Lis SPEC.md avant toute tâche.
 
 ## Règles
 - Langue de l'interface : français ; arabe pour les contenus d'arabe.
@@ -30,7 +30,8 @@ Variables d'environnement :
 
 ## Documents (docs/)
 - Formats lus : .md, .txt, .docx. Les titres de section découpent les passages.
-- Le tuteur cherche dans tous les cours (le parcours mélange les niveaux) ; les fichiers commencent par `cp_`, `1ac_` ou `parcours_`.
-- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_1ac.yaml` (3 par leçon).
+- Le tuteur cherche dans tous les cours (le parcours mélange les niveaux) ; les fichiers commencent par `cp_`, `1ac_` ou `parcours_` (transition, primaire).
+- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml` (3 par leçon).
   Réponses vocalisées ; un élève ne reçoit que les exercices de son palier et des paliers précédents.
-- Parcours : `agent/parcours.yaml` (ordre des paliers, seuil de passage 80 %) ; tests : `agent/evaluation.py`.
+- Parcours : `agent/parcours.yaml` (ordre des paliers, identifiants fixes enregistrés en base, seuil de passage 80 %) ;
+  tests : `agent/evaluation.py`. Après une modification du parcours : `python3 -m agent.parcours` (régénère PARCOURS.md).

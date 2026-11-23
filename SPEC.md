@@ -224,16 +224,16 @@ MÉTHODE
 
 ## Parcours unique en paliers (phase 6)
 
-Le contenu n'est plus organisé par classe : un seul parcours ordonné va des lettres du CP à la 1AC, en 10 paliers
-(`agent/parcours.yaml`). Le **profil** (P1, P2) ne désigne plus une classe mais un **style** : P1 « enfant »
+Le contenu n'est plus organisé par classe : un seul parcours ordonné va des lettres du CP à la 1AC, en paliers
+(`agent/parcours.yaml`, chaque palier ayant un identifiant fixe). Le **profil** (P1, P2) ne désigne plus une classe mais un **style** : P1 « enfant »
 (grosses lettres, voix, boutons, séances de 20 min) et P2 « adolescent » (séances de 45 min).
 
 | Paliers | Contenu |
 | --- | --- |
 | 1 à 3 | Les 28 lettres du CP |
 | 4 à 6 | Transition : voyelles et syllabes, lecture de mots et de phrases, premières notions de grammaire |
-| (à compléter) | Le primaire (2AP à 6AP) |
-| 7 à 10 | Les 23 leçons de langue de la 1AC |
+| 7 et suivants | Le primaire (2AP à 6AP), ajouté palier par palier : 3AP fait |
+| derniers | Les 23 leçons de langue de la 1AC (4 paliers) |
 
 - **Positionnement** : au départ, un test place l'enfant (3 questions par palier, on monte tant qu'il en réussit 2 sur 3).
 - **Passage** : une question par leçon du palier ; réussi à partir de 80 %. L'enfant peut le tenter quand il veut :
