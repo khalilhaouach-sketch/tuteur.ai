@@ -232,7 +232,7 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 | --- | --- |
 | 1 à 3 | Les 28 lettres du CP |
 | 4 à 6 | Transition : voyelles et syllabes, lecture de mots et de phrases, premières notions de grammaire |
-| 7 et suivants | Le primaire (2AP à 6AP), ajouté palier par palier : 3AP et 4AP faits |
+| 7 et suivants | Le primaire (2AP à 6AP), ajouté palier par palier : 3AP, 4AP et 5AP (1) faits |
 | derniers | Les 23 leçons de langue de la 1AC (4 paliers) |
 
 - **Positionnement** : au départ, un test place l'enfant (3 questions par palier, on monte tant qu'il en réussit 2 sur 3).
