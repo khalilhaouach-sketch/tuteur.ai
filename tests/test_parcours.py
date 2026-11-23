@@ -31,11 +31,11 @@ def _repondre(appareil_eleve, test_id, juste):
 
 
 def test_parcours_bien_forme():
-    assert parcours.DERNIER == 11 and parcours.SEUIL_PASSAGE == 0.8
+    assert parcours.DERNIER == 12 and parcours.SEUIL_PASSAGE == 0.8
     assert [p["numero"] for p in parcours.PALIERS] == list(range(1, parcours.DERNIER + 1))
     assert parcours.palier_de("حرف الميم") == 1 and parcours.palier_de("المبني للمجهول") == parcours.DERNIER
     # Ordre : lettres, transition, primaire, 1AC.
-    assert [p["id"] for p in parcours.PALIERS][5:8] == ["transition-3", "primaire-3ap", "1ac-1"]
+    assert [p["id"] for p in parcours.PALIERS][5:9] == ["transition-3", "primaire-3ap", "primaire-4ap", "1ac-1"]
     assert parcours.notions_accessibles(1) == parcours.palier(1)["notions"]
 
 
@@ -164,7 +164,7 @@ def test_memoire_donne_le_palier(client, appareil_eleve, faux_tuteur):
     faux = faux_tuteur([reponse(texte("مرحبًا"))])
     appareil_eleve.post("/eleve/seances")
     memoire = faux.appels[0]["messages"][-1]["content"]
-    assert f"Palier actuel dans le parcours : 8/{parcours.DERNIER} « الصرف (1AC) »" in memoire
+    assert f"Palier actuel dans le parcours : 9/{parcours.DERNIER} « الصرف (1AC) »" in memoire
     # Les paliers précédents sont validés : on commence par la première leçon du palier 7.
     assert "Leçon suivante dans le parcours : الميزان الصرفي" in memoire
 
