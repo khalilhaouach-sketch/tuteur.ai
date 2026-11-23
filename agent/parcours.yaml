@@ -2,7 +2,7 @@
 # Chaque palier a un identifiant fixe (enregistré pour chaque élève) ; son numéro vient de sa position.
 # Chaque palier regroupe des notions (leçons) des banques d'exercices de agent/tools/.
 # Un élève avance en réussissant le test de passage du palier (80 %), confirmé par le parent.
-# EN COURS : paliers du primaire (2AP à 6AP) entre « مبادئ النحو » et la 1AC, ajoutés palier par palier.
+# Paliers du primaire (3AP à 6AP) entre « مبادئ النحو » et la 1AC.
 
 seuil_passage: 0.8
 paliers:
@@ -117,6 +117,16 @@ paliers:
   - الهمزة المتوسطة
   - الهمزة المتطرفة
   - همزتا الوصل والقطع
+- id: primaire-6ap
+  titre: الإعراب بالحروف والعدد والتمييز (6AP)
+  description: 'Primaire 6AP : الأفعال الخمسة، الأسماء الخمسة، إعراب المثنى والجمع، العدد والمعدود، التمييز، المستثنى بإلا'
+  notions:
+  - الأفعال الخمسة
+  - الأسماء الخمسة
+  - إعراب المثنى والجمع السالم
+  - العدد والمعدود
+  - التمييز
+  - المستثنى بإلا
 - id: 1ac-1
   titre: الصرف (1AC)
   description: '1AC semestre 1 : الميزان الصرفي et تصريف الأفعال'

@@ -330,8 +330,8 @@ def test_banque_1ac_complete():
 
     from agent import parcours
 
-    # 28 lettres + 11 leçons de transition + 28 du primaire + 23 de 1AC, chacune dans un palier du parcours.
-    assert len(NOTIONS) == 90 and len(EXERCICES) == 3 * 90
+    # 28 lettres + 11 leçons de transition + 34 du primaire + 23 de 1AC, chacune dans un palier du parcours.
+    assert len(NOTIONS) == 96 and len(EXERCICES) == 3 * 96
     assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
         assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
