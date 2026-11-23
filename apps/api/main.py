@@ -7,8 +7,12 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from apps.api import db
-from rag.ingest import indexer
+from apps.api.config import charger_env
+
+charger_env()  # .env local (clé API...), avant tout le reste
+
+from apps.api import db  # noqa: E402
+from rag.ingest import indexer  # noqa: E402
 from apps.api.auth.routes import router as auth_router
 from apps.api.reports.routes import router as parent_router
 from apps.api.sessions.routes import router as seances_router

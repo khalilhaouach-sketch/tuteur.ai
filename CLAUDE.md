@@ -14,6 +14,7 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
 
 ## Commandes
 - Installer : `pip install -r requirements.txt`
+- Utilisation à la maison (Wi-Fi, sans HTTPS) : `python3 lancer_maison.py` ; guide pour la famille : INSTALLATION.md
 - Lancer l'API et l'interface élève : `python3 -m uvicorn apps.api.main:app --reload`
   (interface élève : http://localhost:8000/ ; page de test de l'API : http://localhost:8000/docs)
 - Lancer les tests (sans appel à l'API Claude) : `python3 -m pytest`
@@ -24,7 +25,7 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
 Variables d'environnement :
 - `TUTEUR_DB` : chemin de la base SQLite (défaut : `data/tuteur.db`).
 - `TUTEUR_DOCS` : dossier des programmes et des cours (défaut : `docs`).
-- `ANTHROPIC_API_KEY` : clé de l'API Claude (jamais dans le code ni dans le dépôt).
+- `ANTHROPIC_API_KEY` : clé de l'API Claude (jamais dans le code ni dans le dépôt ; à la maison, dans `.env`, exclu de Git).
 - `TUTEUR_COOKIE_SECURE` : `1` par défaut (cookies réservés à HTTPS ; localhost fonctionne aussi). Ne jamais mettre `0` en production.
 
 ## Documents (docs/)
