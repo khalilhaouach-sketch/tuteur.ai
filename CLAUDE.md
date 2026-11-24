@@ -15,6 +15,8 @@ Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de so
 ## Commandes
 - Installer : `pip install -r requirements.txt`
 - Utilisation à la maison (Wi-Fi, sans HTTPS) : `python3 lancer_maison.py` ; guide pour la famille : INSTALLATION.md
+- Mise en ligne (serveur + domaine, HTTPS par Caddy) : `sudo bash deploy/installer_serveur.sh` ; guide : DEPLOIEMENT.md
+  (compose.yml à la racine ; le tuteur n'est joignable que par Caddy ; uvicorn avec --proxy-headers)
 - Lancer l'API et l'interface élève : `python3 -m uvicorn apps.api.main:app --reload`
   (interface élève : http://localhost:8000/ ; page de test de l'API : http://localhost:8000/docs)
 - Lancer les tests (sans appel à l'API Claude) : `python3 -m pytest`

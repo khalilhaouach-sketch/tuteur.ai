@@ -1,0 +1,34 @@
+# Déploiement sur un serveur : `docker compose up -d --build` (voir DEPLOIEMENT.md).
+# Les réglages (domaine, clé API) sont lus dans le fichier .env, qui reste sur le serveur.
+services:
+  tuteur:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+    env_file: .env
+    environment:
+      TUTEUR_COOKIE_SECURE: "1"   # HTTPS : cookies protégés
+    volumes:
+      - tuteur-data:/data         # base de données (comptes, résultats, journaux)
+    restart: unless-stopped
+    # Pas de port publié : seul Caddy parle au tuteur.
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAINE: ${DOMAINE:?Indiquez DOMAINE dans .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data          # certificats HTTPS
+      - caddy-config:/config
+    depends_on:
+      - tuteur
+    restart: unless-stopped
+
+volumes:
+  tuteur-data:
+  caddy-data:
+  caddy-config:
