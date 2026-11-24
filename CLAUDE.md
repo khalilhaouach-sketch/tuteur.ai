@@ -28,6 +28,7 @@ Variables d'environnement :
 - `TUTEUR_DB` : chemin de la base SQLite (défaut : `data/tuteur.db`).
 - `TUTEUR_DOCS` : dossier des programmes et des cours (défaut : `docs`).
 - `ANTHROPIC_API_KEY` : clé de l'API Claude (jamais dans le code ni dans le dépôt ; à la maison, dans `.env`, exclu de Git).
+- `TUTEUR_INSCRIPTIONS` : `0` ferme les inscriptions de nouveaux parents (serveur public : à mettre une fois le compte de la famille créé).
 - `TUTEUR_COOKIE_SECURE` : `1` par défaut (cookies réservés à HTTPS ; localhost fonctionne aussi). Ne jamais mettre `0` en production.
 
 ## Documents (docs/)

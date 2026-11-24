@@ -69,14 +69,26 @@ Le script :
 
 Au bout d'une minute, ouvrez `https://tuteur.mondomaine.ma/parent`.
 
+## 5. Fermer les inscriptions (important)
+
+Le tuteur est public : n'importe qui trouvant l'adresse pourrait créer un compte et utiliser vos crédits API.
+Dès que **votre** compte parent est créé, fermez les inscriptions, sur le serveur :
+
+```
+cd /opt/tuteur && echo TUTEUR_INSCRIPTIONS=0 >> .env && docker compose up -d
+```
+
+Vous pouvez toujours vous connecter, ajouter des enfants et générer des codes. Pour rouvrir :
+retirez la ligne `TUTEUR_INSCRIPTIONS=0` de `.env` (`nano .env`), puis `docker compose up -d`.
+
 ## Au quotidien
 
 Il n'y a rien à faire : le tuteur redémarre tout seul si le serveur redémarre.
 
-**Mettre à jour le tuteur** (nouvelle version) : renvoyez le dossier depuis le Mac (étape 3), puis sur le serveur :
+**Mettre à jour le tuteur** (nouvelle version publiée sur GitHub), sur le serveur :
 
 ```
-cd /opt/tuteur && sudo docker compose up -d --build
+cd /opt/tuteur && bash deploy/mettre_a_jour.sh
 ```
 
 Le fichier `.env` et les données des enfants sont conservés.

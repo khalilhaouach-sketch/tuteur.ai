@@ -117,6 +117,10 @@ def eleve_connecte(
 
 @router.post("/parents/inscription", status_code=status.HTTP_201_CREATED, tags=["parents"])
 def inscrire_parent(donnees: Inscription, reponse: Response, db=Depends(get_db)):
+    # Sur un serveur public : une fois le compte de la famille créé, on ferme les inscriptions
+    # (TUTEUR_INSCRIPTIONS=0), pour que personne d'autre n'utilise les crédits de l'API.
+    if os.environ.get("TUTEUR_INSCRIPTIONS", "1") == "0":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Les inscriptions sont fermées sur ce tuteur.")
     if not donnees.consentement:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "Le consentement du parent est obligatoire."

@@ -249,3 +249,15 @@ def test_schema_refuse_une_autre_matiere_que_l_arabe(client):
 def test_seuls_les_profils_cp_et_1ac_existent(client):
     inscrire(client)
     assert client.post("/eleves", json={"prenom": "Yasmine", "profil": "P3"}).status_code == 422
+
+
+def test_inscriptions_fermees(client, monkeypatch):
+    """Sur un serveur public, on ferme les inscriptions une fois le compte de la famille créé."""
+    inscrire(client)                                  # le compte de la famille existe
+    monkeypatch.setenv("TUTEUR_INSCRIPTIONS", "0")
+    r = client.post("/parents/inscription",
+                    json={"email": "inconnu@exemple.ma", "mot_de_passe": "motdepasse123", "consentement": True})
+    assert r.status_code == 403
+    client.post("/parents/deconnexion")               # le parent, lui, peut toujours se connecter
+    assert client.post("/parents/connexion",
+                       json={"email": "parent@exemple.ma", "mot_de_passe": "motdepasse123"}).status_code == 200
