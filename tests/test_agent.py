@@ -324,7 +324,8 @@ def test_donnees_exemple_coherentes():
         for r in ex["reponses"]:
             assert a_des_voyelles(r) or r == "آ", (ex_id, r)  # réponses de référence vocalisées (آ porte sa madda)
         for erreur in ex["erreurs"]:
-            assert all(comparer(erreur, r, False) != "juste" for r in ex["reponses"]), (ex_id, erreur)
+            tolerer = ex.get("tolerer_hamza", True)
+            assert all(comparer(erreur, r, False, tolerer) != "juste" for r in ex["reponses"]), (ex_id, erreur)
 
 
 def test_banque_1ac_complete():
