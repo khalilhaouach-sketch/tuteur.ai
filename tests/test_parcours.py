@@ -36,10 +36,12 @@ def _repondre(appareil_eleve, test_id, juste):
 
 
 def test_parcours_bien_forme():
-    assert parcours.DERNIER == 16 and parcours.SEUIL_PASSAGE == 0.8
+    assert parcours.DERNIER == 20 and parcours.SEUIL_PASSAGE == 0.8
     assert [p["numero"] for p in parcours.PALIERS] == list(range(1, parcours.DERNIER + 1))
-    assert parcours.palier_de("حرف الميم") == 1 and parcours.palier_de("المبني للمجهول") == parcours.DERNIER
-    # Ordre : lettres, transition, primaire, 1AC.
+    assert parcours.palier_de("حرف الميم") == 1 and parcours.palier_de("أسلوب القسم") == parcours.DERNIER
+    assert parcours.palier_de("المبني للمجهول") == parcours.numero_de("1ac-4")
+    # Ordre : lettres, transition, primaire, 1AC, puis le collège (2AC, 3AC).
+    assert [p["id"] for p in parcours.PALIERS][-5:] == ["1ac-4", "2ac-1", "2ac-2", "3ac-1", "3ac-2"]
     assert [p["id"] for p in parcours.PALIERS][5:13] == ["transition-3", "primaire-3ap", "primaire-4ap", "primaire-5ap-1",
                                                          "primaire-5ap-2", "primaire-imla", "primaire-6ap", "1ac-1"]
     assert parcours.notions_accessibles(1) == parcours.palier(1)["notions"]

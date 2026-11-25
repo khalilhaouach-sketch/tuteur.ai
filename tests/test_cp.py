@@ -154,3 +154,18 @@ def test_la_voix_ne_lit_pas_la_mise_en_forme(client):
     assert 'replace(/[*_#`~|>=\\[\\]{}<•→←]/g, " ")' in page
     assert "afficherMisEnForme(div, texte)" in page
     assert "div.innerHTML" not in page  # le texte du modèle n'est jamais interprété comme du HTML
+
+
+def test_seance_au_college(client, appareil_eleve, faux_tuteur):
+    """Palier du collège (3AC) : présentation tirée de docs/cours/parcours_college.md et exercice à boutons."""
+    from agent import parcours
+
+    inscrire(client)
+    eleve = client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"}).json()
+    client.put(f"/eleves/{eleve['id']}/palier", json={"palier": parcours.numero_de("3ac-2")})
+    code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
+    appareil_eleve.post("/eleve/connexion", json={"code": code})
+    faux_tuteur([])
+    r = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()
+    assert "دَرْسٌ جَدِيدٌ: أسلوب التعجب" in r["reponse"] and "مَا أَفْعَلَهُ" in r["reponse"]
+    assert len(r["choix"]) >= 2

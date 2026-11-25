@@ -243,7 +243,7 @@ MÉTHODE
 
 ## Parcours unique en paliers (phase 6)
 
-Le contenu n'est plus organisé par classe : un seul parcours ordonné va des lettres du CP à la 1AC, en paliers
+Le contenu n'est plus organisé par classe : un seul parcours ordonné va des lettres du CP à la 3AC, en paliers
 (`agent/parcours.yaml`, chaque palier ayant un identifiant fixe). Le **profil** (P1, P2) ne désigne plus une classe mais un **style** : P1 « enfant »
 (grosses lettres, voix, boutons, séances de 20 min) et P2 « adolescent » (séances de 45 min).
 
@@ -253,6 +253,7 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 | 4 à 6 | Transition : voyelles et syllabes, lecture de mots et de phrases, premières notions de grammaire |
 | 7 à 12 | Le primaire : 3AP, 4AP, 5AP (deux paliers), orthographe (الإملاء), 6AP |
 | 13 à 16 | Les 23 leçons de langue de la 1AC |
+| 17 à 20 | Le collège (phase 7) : 2AC (المفاعيل والمصادر، النواسخ والتراكيب) et 3AC (الصرف، الأساليب), 29 leçons |
 
 - **Positionnement** : au départ, un test place l'enfant (3 questions par palier, on monte tant qu'il en réussit 2 sur 3).
 - **Passage** : une question par leçon du palier ; réussi à partir de 80 %. L'enfant peut le tenter quand il veut :
@@ -261,6 +262,14 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
   l'enfant lui-même sur un palier.
 - **Révision** : le tuteur peut reprendre les leçons des paliers précédents, jamais celles des paliers suivants.
 - Les tests sont corrigés automatiquement avec les banques d'exercices, sans l'agent.
+
+### Phase 7 : le collège (2AC et 3AC)
+
+Quatre paliers de langue après la 1AC (`2ac-1`, `2ac-2`, `3ac-1`, `3ac-2`), 29 leçons, 13 exercices à boutons
+par leçon (`agent/tools/exercices_college.yaml`) et un résumé de cours par leçon
+(`docs/cours/parcours_college.md`). La liste des leçons a été proposée sans le programme officiel sous les yeux :
+elle est à caler sur les manuels. Phase 8 (à venir) : le lycée, filières scientifiques (et lettres, à confirmer),
+la langue d'abord (grammaire, البلاغة، العروض), les textes et la littérature ensuite.
 
 ## Plan de construction avec Claude Code
 

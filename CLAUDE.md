@@ -1,7 +1,7 @@
 # Projet : tuteur IA de soutien scolaire (Maroc)
 
 ## Contexte
-Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien sur un parcours unique en paliers, des lettres du CP à la 1AC (`agent/parcours.yaml`). Le profil est un style : P1 « enfant », P2 « adolescent ». Matière : arabe uniquement, ni français ni darija. Usage personnel : tuteur familial pour trois enfants (pas une application publique). Lis SPEC.md avant toute tâche.
+Application web mobile (PWA) où un agent IA joue le rôle d'un professeur de soutien sur un parcours unique en paliers, des lettres du CP à la 3AC (`agent/parcours.yaml`, le lycée viendra ensuite). Le profil est un style : P1 « enfant », P2 « adolescent ». Matière : arabe uniquement, ni français ni darija. Usage personnel : tuteur familial pour trois enfants (pas une application publique). Lis SPEC.md avant toute tâche.
 
 ## Règles
 - Langue de l'interface : français ; arabe pour les contenus d'arabe.
@@ -33,9 +33,9 @@ Variables d'environnement :
 
 ## Documents (docs/)
 - Formats lus : .md, .txt, .docx. Les titres de section découpent les passages.
-- Le tuteur cherche dans tous les cours (le parcours mélange les niveaux) ; les fichiers commencent par `cp_`, `1ac_` ou `parcours_` (transition, primaire).
-- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml`
-  (lettres : 15 à 17 par leçon, générés par `python3 -m scripts.generer_exercices_lettres` ; transition : 12 ; primaire et 1AC : 13).
+- Le tuteur cherche dans tous les cours (le parcours mélange les niveaux) ; les fichiers commencent par `cp_`, `1ac_` ou `parcours_` (transition, primaire, collège).
+- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml`, `exercices_college.yaml`
+  (lettres : 15 à 17 par leçon, générés par `python3 -m scripts.generer_exercices_lettres` ; transition : 12 ; primaire, 1AC et collège : 13).
   Réponses vocalisées ; un élève ne reçoit que les exercices de son palier et des paliers précédents.
 - Séances sans IA (P1 et P2) : `agent/seance_locale.py` ; l'IA ne répond qu'aux questions (réponses gardées
   dans `reponses_ia`). L'agent IA complet (`agent/core.py`) reste testé avec la fixture `mode_ia`.

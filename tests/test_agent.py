@@ -337,13 +337,14 @@ def test_banque_1ac_complete():
 
     from agent import parcours
 
-    # 28 lettres + 11 leçons de transition + 34 du primaire + 23 de 1AC, chacune dans un palier du parcours.
-    assert len(NOTIONS) == 96
+    # 28 lettres + 11 leçons de transition + 34 du primaire + 23 de 1AC + 29 du collège (2AC, 3AC),
+    # chacune dans un palier du parcours.
+    assert len(NOTIONS) == 125
     assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
         assert {e["difficulte"] for e in d["exercices"]} == {1, 2, 3}, notion
-        if d["niveau"] == "P1":  # lettres et transition : plus de 10 exercices par leçon
-            assert len(d["exercices"]) > 10, notion
+        # Lettres et transition : plus de 10 exercices par leçon ; primaire, 1AC et collège : 13.
+        assert len(d["exercices"]) > 10 if d["niveau"] == "P1" else len(d["exercices"]) == 13, notion
 
 
 def test_chaque_exercice_se_corrige_comme_prevu(client, appareil_eleve, eleve_connecte, faux_tuteur):
