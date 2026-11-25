@@ -322,7 +322,7 @@ def test_donnees_exemple_coherentes():
     for ex_id, (notion, ex) in EXERCICES.items():
         assert ex["reponses"] and ex["indice"] and ex["explication"], ex_id
         for r in ex["reponses"]:
-            assert a_des_voyelles(r), (ex_id, r)  # réponses de référence vocalisées
+            assert a_des_voyelles(r) or r == "آ", (ex_id, r)  # réponses de référence vocalisées (آ porte sa madda)
         for erreur in ex["erreurs"]:
             assert all(comparer(erreur, r, False) != "juste" for r in ex["reponses"]), (ex_id, erreur)
 
@@ -333,10 +333,12 @@ def test_banque_1ac_complete():
     from agent import parcours
 
     # 28 lettres + 11 leçons de transition + 34 du primaire + 23 de 1AC, chacune dans un palier du parcours.
-    assert len(NOTIONS) == 96 and len(EXERCICES) == 3 * 96
+    assert len(NOTIONS) == 96
     assert sorted(n for p in parcours.PALIERS for n in p["notions"]) == sorted(NOTIONS)
     for notion, d in NOTIONS.items():
-        assert sorted(e["difficulte"] for e in d["exercices"]) == [1, 2, 3], notion
+        assert {e["difficulte"] for e in d["exercices"]} == {1, 2, 3}, notion
+        if d["niveau"] == "P1":  # lettres et transition : plus de 10 exercices par leçon
+            assert len(d["exercices"]) > 10, notion
 
 
 def test_chaque_exercice_se_corrige_comme_prevu(client, appareil_eleve, eleve_connecte, faux_tuteur):
@@ -405,14 +407,15 @@ def test_lecon_acquise_enchaine_sur_la_suivante(client, appareil_eleve, eleve_co
     """corriger enregistre, planifie et donne l'exercice suivant du palier : deux réussites du premier coup
     suffisent pour «حرف الميم», puis la séance continue avec «حرف الباء» (un seul appel d'outil par réponse)."""
     from agent import parcours
+    from agent.tools._commun import choix_de_l_enonce
 
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     parcours.fixer_palier(ctx.db, eleve_connecte["id"], 1)
     premier = executer(ctx, "corriger", {"exercice_id": "cp-01-1", "reponse": "مَ"})
-    assert premier["lecon_acquise"] is False and premier["exercice_suivant"]["exercice_id"] == "cp-01-2"
-    assert premier["exercice_suivant"]["choix"] == ["فَتْحَةٌ", "ضَمَّةٌ", "كَسْرَةٌ"]
-    deuxieme = executer(ctx, "corriger", {"exercice_id": "cp-01-2", "reponse": "فَتْحَةٌ"})
+    assert premier["lecon_acquise"] is False and premier["exercice_suivant"]["exercice_id"] == "cp-01-4"
+    assert premier["exercice_suivant"]["choix"] == choix_de_l_enonce(EXERCICES["cp-01-4"][1]["enonce"])
+    deuxieme = executer(ctx, "corriger", {"exercice_id": "cp-01-4", "reponse": "مَ"})
     assert deuxieme["lecon_acquise"] is True and deuxieme["niveau_maitrise"] == 0.6
     assert deuxieme["exercice_suivant"]["notion"] == "حرف الباء"
     # La révision est planifiée sans appel d'outil supplémentaire.
