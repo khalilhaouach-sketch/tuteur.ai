@@ -444,3 +444,14 @@ def test_prompts_enchainent_les_lecons_sans_annoncer_de_date():
 
 def test_effort_faible_au_cp():
     assert core.EFFORT == {"P1": "low", "P2": "medium"}
+
+
+def test_cout_compte_le_cache():
+    from types import SimpleNamespace
+
+    from agent.cout import cout
+
+    usage = SimpleNamespace(input_tokens=1000, cache_creation_input_tokens=4000,
+                            cache_read_input_tokens=100_000, output_tokens=500)
+    # 0,004 + 0,02 + 0,02 + 0,01 dollars
+    assert round(cout(usage), 4) == 0.054

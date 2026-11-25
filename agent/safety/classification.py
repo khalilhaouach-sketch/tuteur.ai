@@ -37,6 +37,7 @@ class Classifieur:
 
     def __call__(self, texte: str) -> dict:
         signaux = {"detresse": detresse.detecter(texte), "hors_sujet": False}
+        self.dernier_cout = 0.0  # coût de cet appel, ajouté à celui de la séance
         try:
             reponse = self.client.beta.messages.create(
                 model=MODELE,
@@ -47,6 +48,9 @@ class Classifieur:
                 betas=["server-side-fallback-2026-07-01"],
                 fallbacks="default",
             )
+            from agent.cout import cout
+
+            self.dernier_cout = cout(reponse.usage)
             if reponse.stop_reason == "refusal":
                 signaux["detresse"] = True  # un refus de classer ce message est lui-même un signal
                 return signaux

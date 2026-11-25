@@ -216,7 +216,7 @@ async function detail(e) {
     const raison = { eleve: "terminée par l'enfant", temps: "temps écoulé", nouvelle: "remplacée par une nouvelle séance" }[x.fin_raison] || (x.fin ? "terminée" : "en cours");
     const voir = el("button", { class: "lien" }, "Lire le journal"); voir.onclick = () => journal(x);
     s.append(el("div", { class: "ligne", style: "border-bottom:1px solid var(--bord);padding:6px 0" },
-      el("span", {}, `${date(x.debut)} · ${raison}`, x.alertes ? el("span", { class: "badge", style: "margin-inline-start:6px" }, "alerte") : ""), voir));
+      el("span", {}, `${date(x.debut)} · ${raison}` + (x.cout_dollars ? ` · coût ${x.cout_dollars.toFixed(2)} $` : ""), x.alertes ? el("span", { class: "badge", style: "margin-inline-start:6px" }, "alerte") : ""), voir));
   }
   afficher("ecran-eleve");
 }

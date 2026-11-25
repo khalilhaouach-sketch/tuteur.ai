@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS seances (
     fin_raison TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle')),  -- qui a terminé la séance
     journal  TEXT    NOT NULL DEFAULT '[]',       -- échanges au format JSON, consultables par le parent
     tokens_entree INTEGER NOT NULL DEFAULT 0,     -- consommation de l'API, pour mesurer le coût
-    tokens_sortie INTEGER NOT NULL DEFAULT 0
+    tokens_sortie INTEGER NOT NULL DEFAULT 0,
+    cout_dollars REAL NOT NULL DEFAULT 0          -- coût réel en dollars (cache compris)
 );
 CREATE INDEX IF NOT EXISTS idx_seances_eleve ON seances(eleve_id);
 

@@ -40,7 +40,8 @@ def initialiser() -> None:
 
 # Colonnes ajoutées après la création des premières bases (en attendant de vraies migrations).
 _COLONNES_AJOUTEES = {
-    "seances": {"fin_raison": "TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle'))"},
+    "seances": {"fin_raison": "TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle'))",
+                "cout_dollars": "REAL NOT NULL DEFAULT 0"},
     "eleves": {"palier": "TEXT"},
 }
 

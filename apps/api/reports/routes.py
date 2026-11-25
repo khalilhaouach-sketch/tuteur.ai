@@ -56,7 +56,7 @@ def progression(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Dep
 def seances(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     _eleve_du_parent(db, eleve_id, parent_id)
     lignes = db.execute(
-        "SELECT s.id, s.debut, s.fin, s.fin_raison,"
+        "SELECT s.id, s.debut, s.fin, s.fin_raison, ROUND(s.cout_dollars, 3) AS cout_dollars,"
         " (SELECT COUNT(*) FROM alertes a WHERE a.seance_id = s.id) AS alertes"
         " FROM seances s WHERE s.eleve_id = ? ORDER BY s.debut DESC LIMIT 50",
         (eleve_id,),

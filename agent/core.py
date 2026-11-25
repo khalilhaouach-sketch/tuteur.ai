@@ -12,6 +12,7 @@ from pathlib import Path
 import anthropic
 
 from agent import memoire
+from agent.cout import cout
 from agent.safety import filtres
 from agent.safety.classification import Classifieur
 from agent.db_utils import maintenant_iso
@@ -95,7 +96,12 @@ class Tuteur:
         texte, masque = filtres.masquer(texte.strip()[:LONGUEUR_MAX_MESSAGE])
         # Un bouton touché (réponse proposée) ne peut exprimer ni détresse ni hors-sujet :
         # pas d'appel au classifieur, un appel payant de moins par réponse.
-        signaux = {"detresse": False, "hors_sujet": False} if texte in boutons else self.classifieur(texte)
+        cout_controle = 0.0
+        if texte in boutons:
+            signaux = {"detresse": False, "hors_sujet": False}
+        else:
+            signaux = self.classifieur(texte)
+            cout_controle = getattr(self.classifieur, "dernier_cout", 0.0)
         consignes = []
         if signaux["detresse"]:
             db.execute(
@@ -111,7 +117,7 @@ class Tuteur:
         nouveaux = [{"role": "user", "content": texte}]
         if consignes:
             nouveaux.append({"role": "system", "content": "\n".join(consignes)})
-        return self._tour(db, eleve_id, seance_id, nouveaux)
+        return self._tour(db, eleve_id, seance_id, nouveaux, cout_initial=cout_controle)
 
     def conclure(self, db: sqlite3.Connection, eleve_id: int, seance_id: int) -> str:
         nouveaux = [
@@ -122,7 +128,7 @@ class Tuteur:
 
     # --- Boucle -----------------------------------------------------------------
 
-    def _tour(self, db, eleve_id, seance_id, nouveaux, outils=True) -> str:
+    def _tour(self, db, eleve_id, seance_id, nouveaux, outils=True, cout_initial=0.0) -> str:
         seance = db.execute(
             "SELECT s.journal, e.profil FROM seances s JOIN eleves e ON e.id = s.eleve_id"
             " WHERE s.id = ? AND s.eleve_id = ?",
@@ -133,12 +139,14 @@ class Tuteur:
         messages = historique + nouveaux
         ctx = Contexte(db=db, eleve_id=eleve_id, seance_id=seance_id, profil=seance["profil"])
         tokens_entree = tokens_sortie = 0
+        depense = cout_initial  # en dollars, cache compris (et contrôle de sécurité du message)
         texte = None
 
         for _ in range(MAX_APPELS_PAR_TOUR):
             reponse = self._appeler(systeme, messages, outils, EFFORT.get(seance["profil"], "medium"))
             tokens_entree += reponse.usage.input_tokens
             tokens_sortie += reponse.usage.output_tokens
+            depense += cout(reponse.usage)
 
             if reponse.stop_reason in ("refusal", "max_tokens"):
                 # Réponse refusée ou tronquée : elle n'est pas ajoutée au journal.
@@ -164,8 +172,8 @@ class Tuteur:
             messages = historique
         db.execute(
             "UPDATE seances SET journal = ?, tokens_entree = tokens_entree + ?,"
-            " tokens_sortie = tokens_sortie + ? WHERE id = ?",
-            (json.dumps(messages, ensure_ascii=False), tokens_entree, tokens_sortie, seance_id),
+            " tokens_sortie = tokens_sortie + ?, cout_dollars = cout_dollars + ? WHERE id = ?",
+            (json.dumps(messages, ensure_ascii=False), tokens_entree, tokens_sortie, depense, seance_id),
         )
         return texte
 
