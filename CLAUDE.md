@@ -34,7 +34,9 @@ Variables d'environnement :
 ## Documents (docs/)
 - Formats lus : .md, .txt, .docx. Les titres de section découpent les passages.
 - Le tuteur cherche dans tous les cours (le parcours mélange les niveaux) ; les fichiers commencent par `cp_`, `1ac_` ou `parcours_` (transition, primaire).
-- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml` (3 par leçon).
+- Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml`
+  (lettres : 15 à 17 par leçon, générés par `python3 -m scripts.generer_exercices_lettres` ; transition : 12 ; primaire et 1AC : 3).
   Réponses vocalisées ; un élève ne reçoit que les exercices de son palier et des paliers précédents.
+- Séances du style « enfant » (P1) sans IA : `agent/seance_locale.py` ; l'IA ne répond qu'aux messages libres.
 - Parcours : `agent/parcours.yaml` (ordre des paliers, identifiants fixes enregistrés en base, seuil de passage 80 %) ;
   tests : `agent/evaluation.py`. Après une modification du parcours : `python3 -m agent.parcours` (régénère PARCOURS.md).

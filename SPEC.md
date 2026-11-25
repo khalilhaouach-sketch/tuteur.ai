@@ -141,6 +141,21 @@ La mémoire de l'élève vit dans la base de données, pas dans la conversation 
 
 Au début de chaque séance, l'agent reçoit un résumé issu de `maitrise` et des dernières `tentatives` : c'est ainsi qu'il « se souvient » d'un élève d'une séance à l'autre.
 
+### Séance sans IA (style « enfant », P1)
+
+Pour réduire le coût, les séances P1 sont menées par le serveur seul (`agent/seance_locale.py`), à partir des
+contenus stockés : résumé de la leçon (`docs/cours/`), exercices et boutons (banques YAML, plus de 10 exercices
+par leçon pour les lettres et la transition), correction, indice après la 1re erreur, explication et bonne réponse
+après la 2e, félicitations tirées d'une banque de phrases, leçon suivante du palier dès que la leçon est acquise,
+récapitulatif de fin. Le bouton « لَمْ أَفْهَمْ » donne l'indice, puis l'explication stockée.
+
+- **Nombre d'exercices** : le parent règle le nombre proposé (10 par défaut) ; l'enfant en choisit un autre
+  au début de la séance (5, 10, 15, 20). La séance s'arrête quand il est atteint.
+- **IA** : appelée seulement si l'élève écrit un message libre, ou touche « لَمْ أَفْهَمْ » après l'explication
+  stockée ; elle répond sans outil, puis l'exercice reprend. Le contrôle de sécurité s'applique à ces messages.
+- Les échanges vont dans le même journal que les séances avec l'IA (lu par le parent), et le coût réel de
+  chaque séance (cache compris) est affiché au parent.
+
 ## Voix, sécurité des mineurs et qualité
 
 **Voix (surtout le CP arabe).** Claude écrit et lit du texte ; il ne produit ni n'entend d'audio. Il faut donc deux services externes : une synthèse vocale (TTS) pour lire lettres, syllabes et mots vocalisés (التشكيل), et une reconnaissance vocale (STT) pour écouter l'enfant lire. À tester sur de vrais cas avant de t'engager : la prononciation des lettres isolées et des voyelles brèves, et la reconnaissance de voix d'enfants, souvent moins fiable que celle des adultes. Le mode CP doit rester utilisable sans micro, avec des boutons de réponse.

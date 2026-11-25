@@ -86,6 +86,12 @@ def exercice_suivant(ctx) -> dict:
             (ctx.eleve_id, ctx.seance_id),
         )
     }
+    jamais_reussis = lambda e: e["id"] not in reussis_un_jour  # noqa: E731
+    reussis_un_jour = {
+        r["exercice"]
+        for r in ctx.db.execute("SELECT DISTINCT exercice FROM tentatives WHERE eleve_id = ? AND verdict = 'juste'",
+                                (ctx.eleve_id,))
+    }
     palier = parcours.palier(palier_de_l_eleve(ctx))
     premiere = memoire.lecon_suivante(ctx.db, ctx.eleve_id)
     if premiere is None:
@@ -96,7 +102,8 @@ def exercice_suivant(ctx) -> dict:
         if not memoire.lecon_acquise(ctx.db, ctx.eleve_id, notion):
             restants = [e for e in NOTIONS[notion]["exercices"] if e["id"] not in termines]
             if restants:
-                choisi = min(restants, key=lambda e: e["difficulte"])
+                # D'abord les exercices jamais réussis (variété d'une séance à l'autre), du plus facile au plus dur.
+                choisi = min(restants, key=lambda e: (not jamais_reussis(e), e["difficulte"]))
                 return {"exercice_id": choisi["id"], "notion": notion, "enonce": choisi["enonce"],
                         "choix": choix_de_l_enonce(choisi["enonce"])}
     return {"consigne": "Plus d'exercice nouveau pour ce palier dans cette séance : fais un court bilan et "

@@ -20,31 +20,68 @@ def test_choix_extraits_de_l_enonce():
     assert choix_de_l_enonce("ما وزن الفعل «جَلَسَ»؟") == []
 
 
-def test_seance_cp_avec_boutons(client, appareil_eleve, faux_tuteur):
-    _enfant_cp(client, appareil_eleve)
-    faux = faux_tuteur([
-        reponse(texte("مَرْحَبًا يَا آدَمُ! هَيَّا نَلْعَبُ مَعَ حَرْفِ البَاءِ.")),
-        reponse(outil("generer_exercice", notion="حرف الباء", difficulte=1)),
-        reponse(texte("مَا الحَرْفُ الأَوَّلُ فِي كَلِمَةِ «بَابٌ»؟")),
-        reponse(outil("corriger", exercice_id="cp-02-1", reponse="تَ")),
-        reponse(texte("اِسْمَعْ جَيِّدًا: بَ، بَابٌ. حَاوِلْ مَرَّةً أُخْرَى!")),
-        reponse(outil("corriger", exercice_id="cp-02-1", reponse="بَ")),
-        reponse(texte("أَحْسَنْتَ يَا آدَمُ! 🌟 مَا الحَرْفُ الأَوَّلُ فِي كَلِمَةِ «مَوْزٌ»؟")),
-    ])
-    r = appareil_eleve.post("/eleve/seances").json()
-    assert r["profil"] == "P1" and r["choix"] == []
-    # Le tuteur du CP utilise le prompt du CP, et la mémoire propose la première lettre du programme.
-    assert "PROFIL : jeune enfant" in faux.appels[0]["system"]
-    assert "Leçon suivante dans le parcours : حرف الميم" in faux.appels[0]["messages"][-1]["content"]
+def _bonne(ex_id):
+    from agent.tools.donnees_exemple import EXERCICES
 
+    return EXERCICES[ex_id][1]["reponses"][0]
+
+
+def _exercice_en_cours(seance_id):
+    return db.ouvrir().execute("SELECT exercice_en_cours FROM seances WHERE id = ?", (seance_id,)).fetchone()[0]
+
+
+def test_seance_cp_sans_ia(client, appareil_eleve, faux_tuteur):
+    """Au CP, la séance est menée par le serveur : présentation de la leçon, exercice, indice, explication,
+    félicitations, exercice suivant et récapitulatif, sans aucun appel à l'API."""
+    _enfant_cp(client, appareil_eleve)
+    faux = faux_tuteur([])
+    r = appareil_eleve.post("/eleve/seances", json={"nombre": 3}).json()
     s = r["seance_id"]
-    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "نَعَمْ"}).json()
-    assert r["choix"] == ["تَ", "ثَ", "بَ"]  # boutons de l'exercice
-    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "تَ"}).json()
-    assert r["choix"] == ["تَ", "ثَ", "بَ"]  # deuxième essai : mêmes boutons
-    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "بَ"}).json()
-    # Exercice réussi : boutons de l'exercice suivant du palier, donné par corriger (حرف الميم, non acquis).
-    assert r["choix"] == ["مَ", "نَ", "بَ"]
+    assert r["profil"] == "P1" and r["objectif"] == 3
+    assert "مَرْحَبًا يَا Adam" in r["reponse"] and "دَرْسٌ جَدِيدٌ: حرف الميم" in r["reponse"]
+    assert "مَوْزٌ، سَمَكٌ، قَلَمٌ" in r["reponse"]          # résumé du cours (docs/cours/cp_huruf.md)
+    assert r["choix"] == ["مَ", "نَ", "بَ"]                  # premier exercice : cp-01-1
+
+    # Première erreur : l'indice stocké, mêmes boutons.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "نَ"}).json()
+    assert "اِسْمَعِ الصَّوْتَ الأَوَّلَ" in r["reponse"] and r["choix"] == ["مَ", "نَ", "بَ"]
+    # « لَمْ أَفْهَمْ » après l'indice : l'explication stockée.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "لَمْ أَفْهَمْ"}).json()
+    assert "حَرْفُ المِيمِ" in r["reponse"] and not r["terminee"]
+    # Bonne réponse : félicitations et exercice suivant.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "مَ"}).json()
+    assert r["choix"] and r["choix"] != ["مَ", "نَ", "بَ"] and not r["terminee"]
+    for _ in range(2):
+        r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": _bonne(_exercice_en_cours(s))}).json()
+    # Trois exercices faits : récapitulatif et fin de séance, bilan pour le parent.
+    assert r["terminee"] and "حرف الميم" in r["reponse"] and "3 / 3" in r["reponse"]
+    assert db.ouvrir().execute("SELECT fin FROM seances WHERE id = ?", (s,)).fetchone()[0] is not None
+    assert faux.appels == []
+    # Le parent lit les échanges dans le journal, comme pour une séance avec l'IA.
+    eleve_id = client.get("/eleves").json()[0]["id"]
+    journal = client.get(f"/eleves/{eleve_id}/seances/{s}/journal").json()
+    assert [e["qui"] for e in journal][:3] == ["tuteur", "eleve", "tuteur"]
+
+
+def test_seance_cp_message_libre_seul_appel_a_l_ia(client, appareil_eleve, faux_tuteur):
+    _enfant_cp(client, appareil_eleve)
+    faux = faux_tuteur([reponse(texte("المِيمُ صَوْتُهُ «مْ». اِلْمَسِ الزِّرَّ الصَّحِيحَ."))])
+    s = appareil_eleve.post("/eleve/seances", json={}).json()["seance_id"]
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "كَيْفَ أَقْرَأُ هَذَا الحَرْفَ؟"}).json()
+    assert len(faux.appels) == 1 and "N'appelle aucun outil" in faux.appels[0]["messages"][-1]["content"]
+    assert faux.appels[0]["tool_choice"] == {"type": "none"}
+    assert "المِيمُ صَوْتُهُ" in r["reponse"] and r["choix"] == ["مَ", "نَ", "بَ"]  # l'exercice reste en cours
+    assert db.ouvrir().execute("SELECT cout_dollars FROM seances WHERE id = ?", (s,)).fetchone()[0] > 0
+
+
+def test_nombre_d_exercices_regle_par_le_parent(client, appareil_eleve, faux_tuteur):
+    eleve = _enfant_cp(client, appareil_eleve)
+    assert client.put(f"/eleves/{eleve['id']}/reglages", json={"exercices_par_seance": 15}).status_code == 200
+    assert client.put(f"/eleves/{eleve['id']}/reglages", json={"exercices_par_seance": 0}).status_code == 422
+    assert appareil_eleve.get("/eleve/moi").json()["exercices_par_seance"] == 15
+    faux_tuteur([])
+    assert appareil_eleve.post("/eleve/seances", json={}).json()["objectif"] == 15        # réglage du parent
+    assert appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()["objectif"] == 5  # choix de l'enfant
 
 
 def test_lettre_suivante_apres_une_lettre_acquise(client, appareil_eleve, faux_tuteur):
@@ -53,9 +90,9 @@ def test_lettre_suivante_apres_une_lettre_acquise(client, appareil_eleve, faux_t
     conn.execute("INSERT INTO notions (matiere, niveau, intitule) VALUES ('arabe', 'P1', 'حرف الميم')")
     conn.execute("INSERT INTO maitrise (eleve_id, notion_id, niveau) VALUES (?, last_insert_rowid(), 0.75)", (eleve["id"],))
     conn.commit()
-    faux = faux_tuteur([reponse(texte("مَرْحَبًا"))])
-    appareil_eleve.post("/eleve/seances")
-    assert "Leçon suivante dans le parcours : حرف الباء" in faux.appels[0]["messages"][-1]["content"]
+    faux_tuteur([])
+    r = appareil_eleve.post("/eleve/seances").json()
+    assert "دَرْسٌ جَدِيدٌ: حرف الباء" in r["reponse"]
 
 
 def test_seance_cp_limitee_a_20_minutes():

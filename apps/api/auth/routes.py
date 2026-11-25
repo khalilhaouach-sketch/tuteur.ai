@@ -87,6 +87,11 @@ class Eleve(BaseModel):
     palier: int | None = None
     titre_palier: str | None = None
     dernier_palier: int | None = None
+    exercices_par_seance: int = 10  # nombre d'exercices proposé à l'enfant (réglé par le parent)
+
+
+class Reglages(BaseModel):
+    exercices_par_seance: int = Field(ge=1, le=50)
 
 
 # --- Qui est connecté ? --------------------------------------------------------
@@ -191,7 +196,8 @@ def _eleve_du_parent(db: sqlite3.Connection, eleve_id: int, parent_id: int) -> s
 @router.get("/eleves", response_model=list[Eleve], tags=["élèves"])
 def lister_eleves(parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     lignes = db.execute(
-        "SELECT id, prenom, profil, palier FROM eleves WHERE parent_id = ? ORDER BY id", (parent_id,)
+        "SELECT id, prenom, profil, palier, exercices_par_seance FROM eleves WHERE parent_id = ? ORDER BY id",
+        (parent_id,),
     ).fetchall()
     from agent import parcours
 
@@ -223,6 +229,14 @@ def supprimer_eleve(eleve_id: int, parent_id: int = Depends(parent_connecte), db
     _eleve_du_parent(db, eleve_id, parent_id)
     # Supprime aussi ses résultats, ses séances et déconnecte ses appareils (ON DELETE CASCADE).
     db.execute("DELETE FROM eleves WHERE id = ?", (eleve_id,))
+
+
+@router.put("/eleves/{eleve_id}/reglages", tags=["élèves"])
+def regler(eleve_id: int, reglages: Reglages, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
+    """Nombre d'exercices proposé à l'enfant au début de chaque séance (il peut en choisir un autre)."""
+    _eleve_du_parent(db, eleve_id, parent_id)
+    db.execute("UPDATE eleves SET exercices_par_seance = ? WHERE id = ?", (reglages.exercices_par_seance, eleve_id))
+    return {"exercices_par_seance": reglages.exercices_par_seance}
 
 
 @router.post("/eleves/{eleve_id}/code", tags=["élèves"])
@@ -260,7 +274,9 @@ def connecter_eleve(
 def eleve_actuel(eleve_id: int = Depends(eleve_connecte), db=Depends(get_db)):
     from agent import parcours
 
-    ligne = dict(db.execute("SELECT id, prenom, profil, palier FROM eleves WHERE id = ?", (eleve_id,)).fetchone())
+    ligne = dict(db.execute(
+        "SELECT id, prenom, profil, palier, exercices_par_seance FROM eleves WHERE id = ?", (eleve_id,)
+    ).fetchone())
     ligne["palier"] = parcours.numero_de(ligne["palier"])
     ligne["titre_palier"] = parcours.palier(ligne["palier"])["titre"] if ligne["palier"] else None
     ligne["dernier_palier"] = parcours.DERNIER

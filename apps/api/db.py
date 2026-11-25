@@ -41,8 +41,13 @@ def initialiser() -> None:
 # Colonnes ajoutées après la création des premières bases (en attendant de vraies migrations).
 _COLONNES_AJOUTEES = {
     "seances": {"fin_raison": "TEXT CHECK (fin_raison IN ('eleve', 'temps', 'nouvelle'))",
-                "cout_dollars": "REAL NOT NULL DEFAULT 0"},
-    "eleves": {"palier": "TEXT"},
+                "cout_dollars": "REAL NOT NULL DEFAULT 0",
+                "mode": "TEXT NOT NULL DEFAULT 'ia' CHECK (mode IN ('ia', 'local'))",
+                "objectif": "INTEGER",
+                "exercice_en_cours": "TEXT",
+                "aide_donnee": "INTEGER NOT NULL DEFAULT 0",
+                "exercices_faits": "INTEGER NOT NULL DEFAULT 0"},
+    "eleves": {"palier": "TEXT", "exercices_par_seance": "INTEGER NOT NULL DEFAULT 10"},
 }
 
 

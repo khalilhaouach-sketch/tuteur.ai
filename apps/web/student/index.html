@@ -28,6 +28,8 @@
   .erreur { color:#c0392b; min-height:1.2em; margin:0; }
   .entete { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   [hidden] { display:none !important; }
+  #nombres button { min-width:64px; font-size:1.4rem; }
+  #nombres button.choisi { outline:4px solid var(--choix-bord); }
 
   /* Mode CP : grosses lettres vocalisées, réponses par boutons, pas de clavier. */
   body.mode-cp .msg { font-size: 1.9rem; line-height: 2.1; }
@@ -63,6 +65,10 @@
     <p id="mon-palier"></p>
     <p id="invite-positionnement" hidden>Avant de commencer, un petit test pour savoir où tu en es.</p>
     <p class="erreur" id="erreur-accueil"></p>
+    <div id="zone-nombre" hidden>
+      <p>Combien d'exercices aujourd'hui ?</p>
+      <div id="nombres" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px"></div>
+    </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       <button id="test-positionnement" hidden>Faire le test</button>
       <button id="commencer">Commencer la séance</button>
@@ -200,13 +206,16 @@ function ajouter(texte, qui) {
 }
 
 // Boutons de réponse : ceux de l'exercice en cours, sinon (au CP) les réponses simples.
+// Au CP, « لَمْ أَفْهَمْ » est toujours proposé : indice, puis explication, puis (seulement alors) l'IA.
+const PAS_COMPRIS = "لَمْ أَفْهَمْ";
 function boutons(choix) {
   const zone = $("choix"); zone.innerHTML = "";
-  const liste = choix && choix.length ? choix : (profil === "P1" ? REPONSES_CP : []);
+  const avecChoix = choix && choix.length;
+  const liste = avecChoix ? (profil === "P1" ? [...choix, PAS_COMPRIS] : choix) : (profil === "P1" ? REPONSES_CP : []);
   for (const c of liste) {
     const b = document.createElement("button");
     b.textContent = c; b.dir = "auto";
-    if (!(choix && choix.length)) b.className = "simple";
+    if (!avecChoix || c === PAS_COMPRIS) b.className = "simple";
     b.onclick = () => envoyer(c);
     const option = document.createElement("div");
     option.className = "option";
@@ -235,8 +244,20 @@ function accueil(eleve) {
   $("test-positionnement").hidden = positionne;
   $("commencer").hidden = !positionne;
   $("test-passage").hidden = !positionne || eleve.palier >= DERNIER_PALIER;
+  // Nombre d'exercices : celui réglé par le parent est proposé, l'enfant peut en choisir un autre.
+  $("zone-nombre").hidden = !positionne || eleve.profil !== "P1";
+  const parDefaut = eleve.exercices_par_seance || 10;
+  const nombres = [...new Set([5, 10, 15, 20, parDefaut])].sort((a, b) => a - b);
+  nombreChoisi = parDefaut; $("nombres").innerHTML = "";
+  for (const n of nombres) {
+    const b = document.createElement("button");
+    b.className = "secondaire" + (n === parDefaut ? " choisi" : ""); b.textContent = n;
+    b.onclick = () => { nombreChoisi = n; document.querySelectorAll("#nombres button").forEach((x) => x.classList.toggle("choisi", x === b)); };
+    $("nombres").appendChild(b);
+  }
   afficher("ecran-accueil");
 }
+let nombreChoisi = null;
 
 async function demarrer() {
   try { accueil(await api("/eleve/moi")); } catch { afficher("ecran-code"); }
@@ -303,7 +324,7 @@ $("valider-code").onclick = () => occupe(async () => {
 }, "erreur-code");
 
 $("commencer").onclick = () => occupe(async () => {
-  const r = await api("/eleve/seances", {});
+  const r = await api("/eleve/seances", profil === "P1" && nombreChoisi ? { nombre: nombreChoisi } : {});
   seanceId = r.seance_id; $("fil").innerHTML = "";
   afficher("ecran-seance");
   ajouter(r.reponse, "tuteur");

@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS eleves (
     prenom    TEXT    NOT NULL CHECK (length(prenom) BETWEEN 1 AND 30),
     profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- style : P1 enfant, P2 adolescent
     palier    TEXT,                            -- identifiant du palier dans le parcours (NULL : pas encore positionné)
+    exercices_par_seance INTEGER NOT NULL DEFAULT 10,  -- nombre proposé à l'enfant, réglé par le parent
     cree_le   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);
@@ -44,7 +45,14 @@ CREATE TABLE IF NOT EXISTS seances (
     journal  TEXT    NOT NULL DEFAULT '[]',       -- échanges au format JSON, consultables par le parent
     tokens_entree INTEGER NOT NULL DEFAULT 0,     -- consommation de l'API, pour mesurer le coût
     tokens_sortie INTEGER NOT NULL DEFAULT 0,
-    cout_dollars REAL NOT NULL DEFAULT 0          -- coût réel en dollars (cache compris)
+    cout_dollars REAL NOT NULL DEFAULT 0,         -- coût réel en dollars (cache compris)
+    -- Séance sans IA (agent/seance_locale.py) : mode 'local', nombre d'exercices choisi, exercice en cours,
+    -- aide déjà donnée sur cet exercice (0 rien, 1 indice, 2 explication), exercices terminés.
+    mode TEXT NOT NULL DEFAULT 'ia' CHECK (mode IN ('ia', 'local')),
+    objectif INTEGER,
+    exercice_en_cours TEXT,
+    aide_donnee INTEGER NOT NULL DEFAULT 0,
+    exercices_faits INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_seances_eleve ON seances(eleve_id);
 

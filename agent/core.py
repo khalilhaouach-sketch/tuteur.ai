@@ -92,7 +92,7 @@ class Tuteur:
         return self._tour(db, eleve_id, seance_id, nouveaux)
 
     def repondre(self, db: sqlite3.Connection, eleve_id: int, seance_id: int, texte: str,
-                 boutons: tuple[str, ...] = ()) -> str:
+                 boutons: tuple[str, ...] = (), consigne: str | None = None, outils: bool = True) -> str:
         texte, masque = filtres.masquer(texte.strip()[:LONGUEUR_MAX_MESSAGE])
         # Un bouton touché (réponse proposée) ne peut exprimer ni détresse ni hors-sujet :
         # pas d'appel au classifieur, un appel payant de moins par réponse.
@@ -114,10 +114,12 @@ class Tuteur:
             consignes.append(CONSIGNE_HORS_SUJET)
         if masque:
             consignes.append(CONSIGNE_DONNEES)
+        if consigne:  # séance sans IA : ce qu'on attend de cette intervention ponctuelle
+            consignes.append(consigne)
         nouveaux = [{"role": "user", "content": texte}]
         if consignes:
             nouveaux.append({"role": "system", "content": "\n".join(consignes)})
-        return self._tour(db, eleve_id, seance_id, nouveaux, cout_initial=cout_controle)
+        return self._tour(db, eleve_id, seance_id, nouveaux, outils=outils, cout_initial=cout_controle)
 
     def conclure(self, db: sqlite3.Connection, eleve_id: int, seance_id: int) -> str:
         nouveaux = [

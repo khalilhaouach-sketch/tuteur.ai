@@ -77,6 +77,14 @@
         <button id="placer" class="secondaire">Placer l'enfant sur ce palier</button>
       </div>
     </div>
+    <div class="carte"><h2>Exercices par séance</h2>
+      <p class="doux">Nombre proposé à l'enfant au début de chaque séance (il peut en choisir un autre : 5, 10, 15 ou 20).</p>
+      <div class="ligne">
+        <input id="nombre-exercices" type="number" min="1" max="50" style="width:6em;margin:0">
+        <button id="enregistrer-nombre" class="secondaire">Enregistrer</button>
+        <span id="nombre-ok" class="doux"></span>
+      </div>
+    </div>
     <div class="carte"><h2>Progression par leçon</h2><div class="tableau" id="progression"></div></div>
     <div class="carte"><h2>Bilans</h2>
       <div class="ligne"><span class="doux">Rédigés à partir des résultats enregistrés.</span><button id="generer-bilan" class="secondaire">Bilan des 7 derniers jours</button></div>
@@ -158,6 +166,7 @@ $("ajouter").onclick = () => essai(async () => {
 // Détail d'un enfant
 async function detail(e) {
   eleveCourant = e; $("nom-eleve").textContent = `${e.prenom} · ${PROFILS[e.profil]}`; $("code").textContent = "";
+  $("nombre-exercices").value = e.exercices_par_seance || 10; $("nombre-ok").textContent = "";
   const [alertes, prog, bilans, seances, parcours] = await Promise.all([
     api(`/eleves/${e.id}/alertes`), api(`/eleves/${e.id}/progression`),
     api(`/eleves/${e.id}/rapports`), api(`/eleves/${e.id}/seances`), api(`/eleves/${e.id}/parcours`)]);
@@ -221,6 +230,10 @@ async function detail(e) {
   afficher("ecran-eleve");
 }
 $("retour").onclick = tableau;
+$("enregistrer-nombre").onclick = async () => {
+  const r = await api(`/eleves/${eleveCourant.id}/reglages`, { exercices_par_seance: Number($("nombre-exercices").value) }, "PUT");
+  eleveCourant.exercices_par_seance = r.exercices_par_seance; $("nombre-ok").textContent = "Enregistré.";
+};
 $("placer").onclick = async () => {
   await api(`/eleves/${eleveCourant.id}/palier`, { palier: Number($("choix-palier").value) }, "PUT");
   detail(eleveCourant);

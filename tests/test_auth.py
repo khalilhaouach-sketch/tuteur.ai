@@ -117,7 +117,8 @@ def test_eleve_sans_donnees_superflues(client):
     inscrire(client)
     client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"})
     colonnes = {c[1] for c in db.ouvrir().execute("PRAGMA table_info(eleves)")}
-    assert colonnes == {"id", "parent_id", "prenom", "profil", "palier", "cree_le"}
+    # Un réglage (nombre d'exercices proposé), pas une donnée personnelle.
+    assert colonnes == {"id", "parent_id", "prenom", "profil", "palier", "exercices_par_seance", "cree_le"}
 
 
 def test_profil_invalide(client):
@@ -171,7 +172,7 @@ def test_parcours_complet(client, appareil_eleve):
 
     r = appareil_eleve.post("/eleve/connexion", json={"code": code})
     assert r.status_code == 200
-    assert r.json() == {"id": eleve["id"], "prenom": "Yasmine", "profil": "P2", "palier": None, "titre_palier": None, "dernier_palier": None}
+    assert r.json() == {"id": eleve["id"], "prenom": "Yasmine", "profil": "P2", "palier": None, "titre_palier": None, "dernier_palier": None, "exercices_par_seance": 10}
     # L'appareil se souvient de l'élève.
     assert appareil_eleve.get("/eleve/moi").json()["prenom"] == "Yasmine"
     # L'élève n'a pas accès à l'espace parent.
