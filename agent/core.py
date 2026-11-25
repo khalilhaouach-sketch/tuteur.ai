@@ -20,7 +20,8 @@ from agent.tools import DEFINITIONS, Contexte, ErreurOutil, executer
 journal = logging.getLogger("tuteur")
 
 MODELE = "claude-opus-5-5"
-EFFORT = "medium"
+# Réflexion du modèle : faible au CP (exercices courts, corrigés par le serveur), moyenne pour les grands.
+EFFORT = {"P1": "low", "P2": "medium"}
 MAX_TOKENS = 8000
 MAX_APPELS_PAR_TOUR = 12  # garde-fou contre une boucle d'outils sans fin
 LONGUEUR_MAX_MESSAGE = 1000
@@ -89,9 +90,12 @@ class Tuteur:
         ]
         return self._tour(db, eleve_id, seance_id, nouveaux)
 
-    def repondre(self, db: sqlite3.Connection, eleve_id: int, seance_id: int, texte: str) -> str:
+    def repondre(self, db: sqlite3.Connection, eleve_id: int, seance_id: int, texte: str,
+                 boutons: tuple[str, ...] = ()) -> str:
         texte, masque = filtres.masquer(texte.strip()[:LONGUEUR_MAX_MESSAGE])
-        signaux = self.classifieur(texte)
+        # Un bouton touché (réponse proposée) ne peut exprimer ni détresse ni hors-sujet :
+        # pas d'appel au classifieur, un appel payant de moins par réponse.
+        signaux = {"detresse": False, "hors_sujet": False} if texte in boutons else self.classifieur(texte)
         consignes = []
         if signaux["detresse"]:
             db.execute(
@@ -132,7 +136,7 @@ class Tuteur:
         texte = None
 
         for _ in range(MAX_APPELS_PAR_TOUR):
-            reponse = self._appeler(systeme, messages, outils)
+            reponse = self._appeler(systeme, messages, outils, EFFORT.get(seance["profil"], "medium"))
             tokens_entree += reponse.usage.input_tokens
             tokens_sortie += reponse.usage.output_tokens
 
@@ -165,13 +169,13 @@ class Tuteur:
         )
         return texte
 
-    def _appeler(self, systeme: str, messages: list, outils: bool):
+    def _appeler(self, systeme: str, messages: list, outils: bool, effort: str = "medium"):
         parametres = dict(
             model=MODELE,
             max_tokens=MAX_TOKENS,
             system=systeme,
             messages=messages,
-            output_config={"effort": EFFORT},
+            output_config={"effort": effort},
             cache_control={"type": "ephemeral"},
             # Si le modèle refuse pour une raison de sécurité, l'API réessaie sur un autre modèle.
             betas=["server-side-fallback-2026-07-01"],

@@ -29,9 +29,7 @@ def test_seance_cp_avec_boutons(client, appareil_eleve, faux_tuteur):
         reponse(outil("corriger", exercice_id="cp-02-1", reponse="تَ")),
         reponse(texte("اِسْمَعْ جَيِّدًا: بَ، بَابٌ. حَاوِلْ مَرَّةً أُخْرَى!")),
         reponse(outil("corriger", exercice_id="cp-02-1", reponse="بَ")),
-        reponse(outil("enregistrer_progression", exercice_id="cp-02-1")),
-        reponse(outil("planifier_revision", notion="حرف الباء")),
-        reponse(texte("أَحْسَنْتَ يَا آدَمُ! 🌟")),
+        reponse(texte("أَحْسَنْتَ يَا آدَمُ! 🌟 مَا الحَرْفُ الأَوَّلُ فِي كَلِمَةِ «مَوْزٌ»؟")),
     ])
     r = appareil_eleve.post("/eleve/seances").json()
     assert r["profil"] == "P1" and r["choix"] == []
@@ -45,7 +43,8 @@ def test_seance_cp_avec_boutons(client, appareil_eleve, faux_tuteur):
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "تَ"}).json()
     assert r["choix"] == ["تَ", "ثَ", "بَ"]  # deuxième essai : mêmes boutons
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "بَ"}).json()
-    assert r["choix"] == []                  # exercice réussi : plus de boutons
+    # Exercice réussi : boutons de l'exercice suivant du palier, donné par corriger (حرف الميم, non acquis).
+    assert r["choix"] == ["مَ", "نَ", "بَ"]
 
 
 def test_lettre_suivante_apres_une_lettre_acquise(client, appareil_eleve, faux_tuteur):

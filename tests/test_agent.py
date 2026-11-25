@@ -286,9 +286,11 @@ def test_reussite_du_premier_coup_et_repetition_espacee(client, appareil_eleve, 
     jours = []
     for ex in ["mudari3-1", "mudari3-2", "mudari3-3"]:
         executer(ctx, "corriger", {"exercice_id": ex, "reponse": EXERCICES[ex][1]["reponses"][0]})
+        # corriger enregistre déjà : relire la progression ne compte pas le résultat une deuxième fois.
+        executer(ctx, "enregistrer_progression", {"exercice_id": ex})
         executer(ctx, "enregistrer_progression", {"exercice_id": ex})
         jours.append(executer(ctx, "planifier_revision", {"notion": "إعراب الفعل المضارع"})["dans_jours"])
-    assert jours == [1, 3, 7]  # maîtrise 0.25, 0.5, 0.75 : révisions de plus en plus espacées
+    assert jours == [3, 7, 14]  # maîtrise 0.3, 0.6, 0.9 : révisions de plus en plus espacées
 
 
 def test_generer_exercice_adapte_et_sans_corrige(client, appareil_eleve, eleve_connecte, faux_tuteur):
@@ -400,24 +402,45 @@ def test_orthographe_de_la_hamza_stricte(client, appareil_eleve, eleve_connecte,
 
 
 def test_lecon_acquise_enchaine_sur_la_suivante(client, appareil_eleve, eleve_connecte, faux_tuteur):
-    """Une fois «حرف الميم» acquis, l'outil donne la lettre suivante du palier : pas d'arrêt sur une lettre."""
+    """corriger enregistre, planifie et donne l'exercice suivant du palier : deux réussites du premier coup
+    suffisent pour «حرف الميم», puis la séance continue avec «حرف الباء» (un seul appel d'outil par réponse)."""
     from agent import parcours
 
     s = _preparer(client, faux_tuteur, appareil_eleve)
     ctx = _ctx(eleve_connecte["id"], s)
     parcours.fixer_palier(ctx.db, eleve_connecte["id"], 1)
-    resultats = []
-    for ex, rep in [("cp-01-1", "مَ"), ("cp-01-2", "فَتْحَةٌ"), ("cp-01-3", "مَا")]:
-        assert executer(ctx, "corriger", {"exercice_id": ex, "reponse": rep})["verdict"] == "juste"
-        resultats.append(executer(ctx, "enregistrer_progression", {"exercice_id": ex}))
-    assert [r["acquise"] for r in resultats] == [False, False, True]
-    assert "lecon_suivante" not in resultats[0]
-    assert resultats[-1]["lecon_suivante"] == "حرف الباء"
+    premier = executer(ctx, "corriger", {"exercice_id": "cp-01-1", "reponse": "مَ"})
+    assert premier["lecon_acquise"] is False and premier["exercice_suivant"]["exercice_id"] == "cp-01-2"
+    assert premier["exercice_suivant"]["choix"] == ["فَتْحَةٌ", "ضَمَّةٌ", "كَسْرَةٌ"]
+    deuxieme = executer(ctx, "corriger", {"exercice_id": "cp-01-2", "reponse": "فَتْحَةٌ"})
+    assert deuxieme["lecon_acquise"] is True and deuxieme["niveau_maitrise"] == 0.6
+    assert deuxieme["exercice_suivant"]["notion"] == "حرف الباء"
+    # La révision est planifiée sans appel d'outil supplémentaire.
+    assert ctx.db.execute("SELECT COUNT(*) FROM maitrise WHERE prochaine_revision IS NOT NULL").fetchone()[0] == 1
+
+
+def test_palier_termine_propose_le_test_de_passage(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    from agent import parcours
+    from agent.tools._commun import notion_id
+
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)
+    parcours.fixer_palier(ctx.db, eleve_connecte["id"], 1)
+    for n in parcours.palier(1)["notions"]:
+        ctx.db.execute("INSERT INTO maitrise (eleve_id, notion_id, niveau) VALUES (?, ?, 0.9)",
+                       (eleve_connecte["id"], notion_id(ctx.db, n)))
+    resultat = executer(ctx, "corriger", {"exercice_id": "cp-01-1", "reponse": "مَ"})
+    assert resultat["exercice_suivant"]["palier_termine"] is True
 
 
 def test_prompts_enchainent_les_lecons_sans_annoncer_de_date():
     for profil in ("P1", "P2"):
         prompt = core.charger_prompt(profil)
-        assert "tu passes dans la même séance à la leçon suivante" in prompt
+        assert "sans appeler d'autre outil" in prompt
         assert "tu ne les annonces pas à l'élève" in prompt
+        assert "Messages courts" in prompt
     assert "Un seul objectif par séance" not in core.charger_prompt("P1")
+
+
+def test_effort_faible_au_cp():
+    assert core.EFFORT == {"P1": "low", "P2": "medium"}

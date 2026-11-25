@@ -9,8 +9,8 @@ DEFINITION = {
     "name": "planifier_revision",
     "description": (
         "Fixe la date de la prochaine révision d'une notion selon le niveau de maîtrise de l'élève "
-        "(répétition espacée). À appeler après enregistrer_progression. La date est interne : "
-        "ne l'annonce pas à l'élève et ne t'arrête pas pour autant."
+        "(répétition espacée). Inutile en temps normal : corriger la fixe déjà à la fin de chaque exercice. "
+        "La date est interne : ne l'annonce pas à l'élève."
     ),
     "strict": True,
     "input_schema": schema({"notion": {"type": "string", "enum": NOMS_NOTIONS}}),
@@ -28,7 +28,11 @@ def intervalle_jours(niveau: float) -> int:
 
 
 def executer(ctx, entree: dict) -> dict:
-    notion = notion_valide(entree["notion"])
+    return planifier(ctx, notion_valide(entree["notion"]))
+
+
+def planifier(ctx, notion: str) -> dict:
+    """Appelé aussi automatiquement par corriger à la fin de chaque exercice."""
     nid = notion_id(ctx.db, notion)
     ligne = ctx.db.execute(
         "SELECT niveau FROM maitrise WHERE eleve_id = ? AND notion_id = ?", (ctx.eleve_id, nid)

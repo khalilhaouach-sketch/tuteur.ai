@@ -10,7 +10,9 @@ DEFINITION = {
         "le type d'erreur, et selon l'essai : un indice après la première erreur, puis l'explication et la bonne "
         "réponse après la deuxième erreur. Le verdict « a_vocaliser » signifie que la réponse est juste mais "
         "incomplète : demande à l'élève de la réécrire avec toutes les voyelles (ce n'est pas compté comme une "
-        "erreur). Passe la réponse de l'élève exactement telle qu'il l'a écrite, avec ses voyelles."
+        "erreur). Passe la réponse de l'élève exactement telle qu'il l'a écrite, avec ses voyelles. Quand l'exercice "
+        "est terminé, la progression et la révision sont enregistrées, et « exercice_suivant » donne le prochain "
+        "exercice du palier (énoncé et exercice_id) : présente-le directement, sans appeler d'autre outil."
     ),
     "strict": True,
     "input_schema": schema(
@@ -56,16 +58,26 @@ def executer(ctx, entree: dict) -> dict:
     ).fetchone()
 
     if juste:
-        return {"verdict": "juste", "exercice_termine": True, "essais_rates": nb_erreurs}
+        return _terminer(ctx, notion, ex, {"verdict": "juste", "exercice_termine": True, "essais_rates": nb_erreurs})
     if nb_erreurs == 1:
         return {"verdict": "faux", "type_erreur": type_erreur, "indice": ex["indice"], "exercice_termine": False}
-    return {
+    return _terminer(ctx, notion, ex, {
         "verdict": "faux",
         "type_erreur": type_erreur,
         "explication": ex["explication"],
         "bonne_reponse": ex["reponses"][0],
         "exercice_termine": True,
-    }
+    })
+
+
+def _terminer(ctx, notion: str, ex: dict, resultat: dict) -> dict:
+    """Exercice terminé : progression, révision et exercice suivant du palier, dans le même appel d'outil."""
+    from agent.tools import enregistrer_progression, generer_exercice, planifier_revision
+
+    progression = enregistrer_progression.appliquer(ctx, notion, ex["id"])
+    planifier_revision.planifier(ctx, notion)
+    return {**resultat, "niveau_maitrise": progression["niveau_maitrise"], "lecon_acquise": progression["acquise"],
+            "exercice_suivant": generer_exercice.exercice_suivant(ctx)}
 
 
 def _type_erreur(reponse: str, ex: dict, tolerer: bool, voyelles_seulement: bool) -> str:

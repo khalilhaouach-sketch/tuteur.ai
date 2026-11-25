@@ -18,6 +18,8 @@ from apps.api.db import get_db, iso, maintenant
 router = APIRouter(tags=["séances"])
 
 MAX_MESSAGES_PAR_SEANCE = 60
+# Réponses simples proposées en boutons au CP (mêmes valeurs que dans apps/web/student/index.html).
+REPONSES_CP = ("نَعَمْ", "لَا", "لَمْ أَفْهَمْ")
 
 
 @lru_cache
@@ -76,7 +78,7 @@ def choix_en_cours(db, seance_id: int) -> list[str]:
             except (TypeError, json.JSONDecodeError):
                 continue
             if resultat.get("exercice_termine"):
-                return []
+                return (resultat.get("exercice_suivant") or {}).get("choix", [])
             if "choix" in resultat:
                 return resultat["choix"]
     return []
@@ -130,7 +132,8 @@ def envoyer(
     if nombre >= MAX_MESSAGES_PAR_SEANCE * 3:
         raise HTTPException(status.HTTP_409_CONFLICT, "Séance trop longue : termine-la et fais une pause.")
     try:
-        reponse = tuteur.repondre(db, eleve_id, seance_id, message.texte)
+        boutons = tuple(choix_en_cours(db, seance_id)) + (REPONSES_CP if seance["profil"] == "P1" else ())
+        reponse = tuteur.repondre(db, eleve_id, seance_id, message.texte, boutons)
     except TuteurIndisponible:
         raise _indisponible()
     return {"reponse": reponse, "choix": choix_en_cours(db, seance_id), "terminee": False}

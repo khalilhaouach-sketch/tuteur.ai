@@ -81,3 +81,11 @@ def lecon_suivante(db: sqlite3.Connection, eleve_id: int) -> str | None:
         )
     }
     return next((n for n in p["notions"] if n not in acquises), None)
+
+
+def lecon_acquise(db: sqlite3.Connection, eleve_id: int, notion: str) -> bool:
+    ligne = db.execute(
+        "SELECT m.niveau FROM maitrise m JOIN notions n ON n.id = m.notion_id WHERE m.eleve_id = ? AND n.intitule = ?",
+        (eleve_id, notion),
+    ).fetchone()
+    return bool(ligne) and ligne["niveau"] >= SEUIL_ACQUIS

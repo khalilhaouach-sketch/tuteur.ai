@@ -1,4 +1,8 @@
-"""Met à jour le niveau de maîtrise de l'élève à partir du résultat réel de l'exercice."""
+"""Niveau de maîtrise de l'élève, mis à jour à partir du résultat réel de chaque exercice.
+
+La mise à jour est faite automatiquement par corriger dès qu'un exercice est terminé (un appel d'outil
+de moins par exercice). L'outil ne fait que relire l'état : l'appeler ne compte jamais un résultat deux fois.
+"""
 
 from agent import memoire
 from agent.tools._commun import ErreurOutil, exercice, notion_id, schema
@@ -6,37 +10,38 @@ from agent.tools._commun import ErreurOutil, exercice, notion_id, schema
 DEFINITION = {
     "name": "enregistrer_progression",
     "description": (
-        "Enregistre en base le résultat d'un exercice terminé (après le verdict final de corriger) "
-        "et met à jour le niveau de maîtrise de la notion. Le résultat est lu depuis les corrections, "
-        "il n'a pas à être fourni. Indique si la leçon est acquise et, dans ce cas, la leçon suivante "
-        "du parcours, à commencer dans la même séance."
+        "Relit le niveau de maîtrise d'une notion après un exercice terminé. Inutile en temps normal : "
+        "corriger enregistre déjà la progression dès que l'exercice est terminé."
     ),
     "strict": True,
     "input_schema": schema({"exercice_id": {"type": "string"}}),
 }
 
-# Évolution du niveau de maîtrise (entre 0 et 1).
-GAIN_DU_PREMIER_COUP = 0.25
+# Évolution du niveau de maîtrise (entre 0 et 1) : deux réussites du premier coup suffisent à acquérir une leçon.
+GAIN_DU_PREMIER_COUP = 0.30
 GAIN_APRES_ERREUR = 0.10
 PERTE_ECHEC = 0.15
 
 
-def executer(ctx, entree: dict) -> dict:
-    notion, ex = exercice(entree["exercice_id"])
-    lignes = ctx.db.execute(
+def _verdicts(ctx, ex_id: str) -> list[str]:
+    return [l["verdict"] for l in ctx.db.execute(
         "SELECT verdict FROM tentatives WHERE eleve_id = ? AND seance_id IS ? AND exercice = ? ORDER BY id",
-        (ctx.eleve_id, ctx.seance_id, ex["id"]),
-    ).fetchall()
-    if not lignes:
-        raise ErreurOutil("aucune correction pour cet exercice : appelle d'abord corriger")
-    verdicts = [l["verdict"] for l in lignes]
-    if verdicts[-1] == "juste":
-        delta = GAIN_DU_PREMIER_COUP if len(verdicts) == 1 else GAIN_APRES_ERREUR
-    elif verdicts.count("faux") >= 2:
-        delta = -PERTE_ECHEC
-    else:
-        raise ErreurOutil("exercice pas encore terminé : laisse l'élève faire un deuxième essai")
+        (ctx.eleve_id, ctx.seance_id, ex_id),
+    )]
 
+
+def _etat(ctx, notion: str) -> dict:
+    ligne = ctx.db.execute(
+        "SELECT niveau FROM maitrise WHERE eleve_id = ? AND notion_id = ?", (ctx.eleve_id, notion_id(ctx.db, notion))
+    ).fetchone()
+    niveau = ligne["niveau"] if ligne else 0.0
+    return {"notion": notion, "niveau_maitrise": round(niveau, 2), "acquise": niveau >= memoire.SEUIL_ACQUIS}
+
+
+def appliquer(ctx, notion: str, ex_id: str) -> dict:
+    """Appelé par corriger une seule fois, quand l'exercice vient de se terminer."""
+    verdicts = _verdicts(ctx, ex_id)
+    delta = (GAIN_DU_PREMIER_COUP if len(verdicts) == 1 else GAIN_APRES_ERREUR) if verdicts[-1] == "juste" else -PERTE_ECHEC
     nid = notion_id(ctx.db, notion)
     ctx.db.execute(
         "INSERT INTO maitrise (eleve_id, notion_id, niveau) VALUES (?, ?, 0)"
@@ -47,13 +52,14 @@ def executer(ctx, entree: dict) -> dict:
         "UPDATE maitrise SET niveau = MIN(1, MAX(0, niveau + ?)) WHERE eleve_id = ? AND notion_id = ?",
         (delta, ctx.eleve_id, nid),
     )
-    (niveau,) = ctx.db.execute(
-        "SELECT niveau FROM maitrise WHERE eleve_id = ? AND notion_id = ?", (ctx.eleve_id, nid)
-    ).fetchone()
-    resultat = {"notion": notion, "niveau_maitrise": round(niveau, 2), "enregistre": True,
-                "acquise": niveau >= memoire.SEUIL_ACQUIS}
-    if resultat["acquise"]:
-        # Pas d'arrêt sur une leçon acquise : on enchaîne sur la suivante du palier.
-        suivante = memoire.lecon_suivante(ctx.db, ctx.eleve_id)
-        resultat["lecon_suivante"] = suivante or "aucune : toutes les leçons du palier sont acquises, propose le test de passage"
-    return resultat
+    return _etat(ctx, notion)
+
+
+def executer(ctx, entree: dict) -> dict:
+    notion, ex = exercice(entree["exercice_id"])
+    verdicts = _verdicts(ctx, ex["id"])
+    if not verdicts:
+        raise ErreurOutil("aucune correction pour cet exercice : appelle d'abord corriger")
+    if verdicts[-1] != "juste" and verdicts.count("faux") < 2:
+        raise ErreurOutil("exercice pas encore terminé : laisse l'élève faire un deuxième essai")
+    return {**_etat(ctx, notion), "enregistre": True}

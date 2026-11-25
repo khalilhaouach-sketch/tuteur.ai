@@ -139,3 +139,30 @@ def test_pas_de_pause_apres_une_fin_normale(appareil_eleve, eleve_connecte, faux
 def test_durees_par_profil():
     debut = iso(maintenant() - timedelta(minutes=25))
     assert limites.temps_ecoule(debut, "P1") and not limites.temps_ecoule(debut, "P2")
+
+
+def test_bouton_touche_sans_appel_au_classifieur(client):
+    """Une réponse touchée parmi les boutons ne déclenche pas d'appel payant au classifieur ;
+    un texte libre, si."""
+    import sqlite3
+
+    from agent.core import Tuteur
+    from tests.faux_claude import FauxClient, reponse, texte
+
+    appels = []
+
+    def classifieur(t):
+        appels.append(t)
+        return {"detresse": False, "hors_sujet": False}
+
+    tuteur = Tuteur(FauxClient([reponse(texte("أَحْسَنْتَ")), reponse(texte("جَيِّدٌ"))]), classifieur=classifieur)
+    from apps.api import db
+
+    conn = db.ouvrir()
+    conn.execute("INSERT INTO parents (email, mot_de_passe_hash, consentement_le, cree_le) VALUES ('b@x.ma', 'x', 'n', 'n')")
+    eid = conn.execute("INSERT INTO eleves (parent_id, prenom, profil, cree_le) VALUES (last_insert_rowid(), 'Sara', 'P1', 'n')").lastrowid
+    sid = conn.execute("INSERT INTO seances (eleve_id, debut) VALUES (?, '2026-01-01')", (eid,)).lastrowid
+    tuteur.repondre(conn, eid, sid, "مَ", boutons=("مَ", "نَ", "بَ"))
+    assert appels == []
+    tuteur.repondre(conn, eid, sid, "أَنَا خَائِفٌ")
+    assert appels == ["أَنَا خَائِفٌ"]
