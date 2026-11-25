@@ -5,6 +5,7 @@ from datetime import timedelta
 
 import anthropic
 import httpx
+import pytest
 
 from agent.core import CONSIGNE_DETRESSE, CONSIGNE_DONNEES, CONSIGNE_HORS_SUJET, Tuteur
 from agent.db_utils import iso, maintenant
@@ -14,6 +15,9 @@ from agent.safety.filtres import MASQUE, masquer
 from apps.api import db
 from apps.api.sessions.routes import get_tuteur
 from tests.faux_claude import FauxClient, reponse, texte
+
+# Ces tests portent sur l'agent IA : séances menées par l'IA (voir la fixture mode_ia).
+pytestmark = pytest.mark.usefixtures("mode_ia")
 
 
 # --- Données personnelles ------------------------------------------------------

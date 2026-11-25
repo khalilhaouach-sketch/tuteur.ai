@@ -4,6 +4,11 @@ from tests.conftest import inscrire
 from tests.faux_claude import outil, reponse, texte
 
 
+import pytest
+
+# Ces tests portent sur l'agent IA : séances menées par l'IA (voir la fixture mode_ia).
+pytestmark = pytest.mark.usefixtures("mode_ia")
+
 def _seance_avec_exercice(appareil_eleve, faux_tuteur):
     faux_tuteur([
         reponse(texte("مرحبًا يا ياسمين")),

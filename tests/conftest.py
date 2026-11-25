@@ -63,3 +63,15 @@ def faux_tuteur(app):
 
     yield programmer
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mode_ia():
+    """Séances menées par l'IA (agent/core.py) pour tous les profils, comme avant la séance sans IA :
+    pour les tests de l'agent lui-même."""
+    from apps.api.sessions import routes
+
+    ancien = set(routes.MODE_SANS_IA)
+    routes.MODE_SANS_IA.clear()
+    yield
+    routes.MODE_SANS_IA.update(ancien)

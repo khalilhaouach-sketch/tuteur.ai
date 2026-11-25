@@ -36,7 +36,7 @@
   body.mode-cp .msg.eleve { font-size: 1.6rem; }
   body.mode-cp #choix button { font-size: 2.6rem; min-width: 110px; min-height: 96px; border-radius: 20px; }
   body.mode-cp #choix button.simple { font-size: 1.6rem; min-height: 72px; }
-  body.mode-cp .saisie { display:none; }
+  body.mode-cp .saisie, body.mode-cp #question { display:none; }
   body.mode-cp #commencer { font-size: 1.8rem; padding: 20px 28px; border-radius: 20px; }
 
   /* Voix (mode CP) */
@@ -97,8 +97,9 @@
     <div id="choix"></div>
     <div class="saisie">
       <textarea id="texte" dir="auto" placeholder="Écris ta réponse…"></textarea>
-      <button id="envoyer">Envoyer</button>
+      <button id="envoyer">Répondre</button>
     </div>
+    <button id="question" class="secondaire" title="Écris ta question dans la case, puis touche ce bouton">❓ Poser une question</button>
     <button id="terminer" class="secondaire">Terminer la séance</button>
   </section>
 </main>
@@ -211,7 +212,7 @@ const PAS_COMPRIS = "لَمْ أَفْهَمْ";
 function boutons(choix) {
   const zone = $("choix"); zone.innerHTML = "";
   const avecChoix = choix && choix.length;
-  const liste = avecChoix ? (profil === "P1" ? [...choix, PAS_COMPRIS] : choix) : (profil === "P1" ? REPONSES_CP : []);
+  const liste = avecChoix ? [...choix, PAS_COMPRIS] : (profil === "P1" ? REPONSES_CP : [PAS_COMPRIS]);
   for (const c of liste) {
     const b = document.createElement("button");
     b.textContent = c; b.dir = "auto";
@@ -245,7 +246,7 @@ function accueil(eleve) {
   $("commencer").hidden = !positionne;
   $("test-passage").hidden = !positionne || eleve.palier >= DERNIER_PALIER;
   // Nombre d'exercices : celui réglé par le parent est proposé, l'enfant peut en choisir un autre.
-  $("zone-nombre").hidden = !positionne || eleve.profil !== "P1";
+  $("zone-nombre").hidden = !positionne;
   const parDefaut = eleve.exercices_par_seance || 10;
   const nombres = [...new Set([5, 10, 15, 20, parDefaut])].sort((a, b) => a - b);
   nombreChoisi = parDefaut; $("nombres").innerHTML = "";
@@ -324,19 +325,20 @@ $("valider-code").onclick = () => occupe(async () => {
 }, "erreur-code");
 
 $("commencer").onclick = () => occupe(async () => {
-  const r = await api("/eleve/seances", profil === "P1" && nombreChoisi ? { nombre: nombreChoisi } : {});
+  const r = await api("/eleve/seances", nombreChoisi ? { nombre: nombreChoisi } : {});
   seanceId = r.seance_id; $("fil").innerHTML = "";
   afficher("ecran-seance");
   ajouter(r.reponse, "tuteur");
   boutons(r.choix);
 }, "erreur-accueil");
 
-function envoyer(texte) {
+// question : « Poser une question » (le texte va à l'IA) ; sinon c'est une réponse, corrigée par le serveur.
+function envoyer(texte, question = false) {
   texte = (texte || "").trim();
-  if (!texte) return;
+  if (!texte) { if (question) $("texte").focus(); return; }
   return occupe(async () => {
     ajouter(texte, "eleve"); $("texte").value = ""; $("choix").innerHTML = "";
-    const r = await api(`/eleve/seances/${seanceId}/messages`, { texte });
+    const r = await api(`/eleve/seances/${seanceId}/messages`, question ? { texte, question: true } : { texte });
     ajouter(r.reponse, "tuteur");
     if (r.terminee) return finDeSeance();  // temps écoulé : pause imposée
     boutons(r.choix);
@@ -344,6 +346,7 @@ function envoyer(texte) {
 }
 
 $("envoyer").onclick = () => envoyer($("texte").value);
+$("question").onclick = () => envoyer($("texte").value, true);
 $("texte").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); envoyer($("texte").value); }
 });

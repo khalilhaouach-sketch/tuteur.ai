@@ -63,15 +63,48 @@ def test_seance_cp_sans_ia(client, appareil_eleve, faux_tuteur):
     assert [e["qui"] for e in journal][:3] == ["tuteur", "eleve", "tuteur"]
 
 
-def test_seance_cp_message_libre_seul_appel_a_l_ia(client, appareil_eleve, faux_tuteur):
+def test_question_a_l_ia_puis_reponse_gardee(client, appareil_eleve, faux_tuteur):
+    """Une question va à l'IA (sans outil) ; la même question sur le même exercice reçoit ensuite la réponse
+    gardée, sans nouvel appel."""
     _enfant_cp(client, appareil_eleve)
-    faux = faux_tuteur([reponse(texte("المِيمُ صَوْتُهُ «مْ». اِلْمَسِ الزِّرَّ الصَّحِيحَ."))])
+    faux = faux_tuteur([reponse(texte("المِيمُ صَوْتُهُ «مْ». اِخْتَرِ الجَوَابَ."))])
     s = appareil_eleve.post("/eleve/seances", json={}).json()["seance_id"]
-    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "كَيْفَ أَقْرَأُ هَذَا الحَرْفَ؟"}).json()
+    question = {"texte": "كَيْفَ أَقْرَأُ هَذَا الحَرْفَ؟", "question": True}
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json=question).json()
     assert len(faux.appels) == 1 and "N'appelle aucun outil" in faux.appels[0]["messages"][-1]["content"]
     assert faux.appels[0]["tool_choice"] == {"type": "none"}
     assert "المِيمُ صَوْتُهُ" in r["reponse"] and r["choix"] == ["مَ", "نَ", "بَ"]  # l'exercice reste en cours
     assert db.ouvrir().execute("SELECT cout_dollars FROM seances WHERE id = ?", (s,)).fetchone()[0] > 0
+    # Même question (sans voyelles cette fois) : réponse gardée, aucun appel.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "كيف أقرأ هذا الحرف", "question": True}).json()
+    assert "المِيمُ صَوْتُهُ" in r["reponse"] and len(faux.appels) == 1
+
+
+def test_grand_sans_ia_reponse_ecrite_et_securite(client, appareil_eleve, faux_tuteur):
+    """Style « adolescent » (P2) : séance sans IA ; une réponse écrite est corrigée par le serveur ;
+    un texte qui déclenche le contrôle de sécurité va à l'IA et alerte le parent."""
+    from agent import parcours
+
+    inscrire(client)
+    eleve = client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"}).json()
+    numero = parcours.numero_de("1ac-2")
+    client.put(f"/eleves/{eleve['id']}/palier", json={"palier": numero})
+    code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
+    appareil_eleve.post("/eleve/connexion", json={"code": code})
+    faux = faux_tuteur([reponse(texte("أَنَا هُنَا لِأُسَاعِدَكَ. تَحَدَّثْ مَعَ وَالِدَيْكَ."))])
+    r = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()
+    s = r["seance_id"]
+    ex_id = _exercice_en_cours(s)
+    assert r["objectif"] == 5 and ex_id and faux.appels == []
+    # Réponse écrite au clavier, corrigée sans IA.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": _bonne(ex_id)}).json()
+    assert not r["terminee"] and faux.appels == []
+    # Un message de détresse tapé à la place d'une réponse : l'IA répond, le parent est alerté.
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "أَنَا خَائِفٌ جِدًّا"}).json()
+    assert len(faux.appels) == 1 and "تَحَدَّثْ مَعَ وَالِدَيْكَ" in r["reponse"]
+    assert client.get(f"/eleves/{eleve['id']}/alertes").json()
+    # Aucune réponse gardée pour un message de détresse.
+    assert db.ouvrir().execute("SELECT COUNT(*) FROM reponses_ia").fetchone()[0] == 0
 
 
 def test_nombre_d_exercices_regle_par_le_parent(client, appareil_eleve, faux_tuteur):

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import anthropic
 import httpx
+import pytest
 
 from agent import core
 from agent.tools import DEFINITIONS, Contexte, executer
@@ -14,6 +15,9 @@ from agent.tools._commun import ErreurOutil, normaliser
 from agent.tools.donnees_exemple import EXERCICES
 from apps.api import db
 from tests.faux_claude import outil, reponse, texte
+
+# Ces tests portent sur l'agent IA : séances menées par l'IA (voir la fixture mode_ia).
+pytestmark = pytest.mark.usefixtures("mode_ia")
 
 
 # --- Séance complète, de l'accueil au bilan ------------------------------------

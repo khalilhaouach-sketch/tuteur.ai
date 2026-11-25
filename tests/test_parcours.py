@@ -9,6 +9,11 @@ from tests.conftest import inscrire
 from tests.faux_claude import reponse, texte
 
 
+import pytest
+
+# Ces tests portent sur l'agent IA : séances menées par l'IA (voir la fixture mode_ia).
+pytestmark = pytest.mark.usefixtures("mode_ia")
+
 def _enfant(client, appareil_eleve, profil="P1", palier=None):
     inscrire(client)
     eleve = client.post("/eleves", json={"prenom": "Adam", "profil": profil}).json()

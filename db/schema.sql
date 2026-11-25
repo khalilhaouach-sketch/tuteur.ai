@@ -153,3 +153,14 @@ CREATE TABLE IF NOT EXISTS passages (
 -- Index de recherche plein texte (texte arabe normalisé : sans voyelles, sans préfixes).
 -- Le titre de section a plus de poids que le texte dans le classement (voir rag/search.py).
 CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5(titre, contenu);
+
+-- Réponses de l'IA aux questions posées pendant une séance sans IA, réutilisées pour la même question
+-- (texte normalisé) sur le même exercice : un appel payant n'est fait qu'une fois.
+CREATE TABLE IF NOT EXISTS reponses_ia (
+    exercice     TEXT    NOT NULL,
+    question     TEXT    NOT NULL,
+    reponse      TEXT    NOT NULL,
+    utilisations INTEGER NOT NULL DEFAULT 0,
+    cree_le      TEXT    NOT NULL,
+    PRIMARY KEY (exercice, question)
+);

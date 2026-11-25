@@ -4,8 +4,10 @@ Présentation de la leçon (docs/cours/), exercice et boutons (banques YAML), co
 enregistre la progression et planifie la révision), indice après la 1re erreur, explication après la 2e,
 félicitations tirées d'une banque de phrases, passage à la leçon suivante du palier, récapitulatif de fin.
 
-L'IA (agent/core.py) n'est appelée que si l'élève écrit un message libre, ou touche « لَمْ أَفْهَمْ »
-alors que l'explication stockée a déjà été donnée. Les échanges sont ajoutés au même journal que les séances
+L'IA (agent/core.py) n'est appelée que si l'élève pose une question (bouton « Poser une question » des
+grands), touche « لَمْ أَفْهَمْ » alors que l'explication stockée a déjà été donnée, ou écrit un texte qui
+déclenche le contrôle de sécurité. Ses réponses sont gardées (table reponses_ia) et réutilisées pour la
+même question sur le même exercice. Les échanges sont ajoutés au même journal que les séances
 avec l'IA (format des messages de l'API) : le parent les lit de la même façon.
 """
 
@@ -16,6 +18,8 @@ import sqlite3
 from functools import lru_cache
 from pathlib import Path
 
+from agent.db_utils import maintenant_iso
+from agent.safety import detresse, filtres
 from agent.tools import Contexte, corriger, generer_exercice
 from agent.tools._commun import choix_de_l_enonce, normaliser
 from agent.tools.donnees_exemple import EXERCICES
@@ -30,7 +34,8 @@ APRES_ECHEC = "لَا بَأْسَ، نَتَعَلَّمُ مِنَ الخَط�
 CONSIGNE_QUESTION = (
     "Séance sans IA : tu interviens seulement pour répondre au dernier message de l'élève, à propos de "
     "l'exercice en cours : « {enonce} ». Réponds en deux ou trois phrases très simples, en arabe vocalisé, "
-    "sans donner la réponse, puis invite-le à toucher un bouton. N'appelle aucun outil."
+    "sans donner la réponse, puis invite-le à répondre à l'exercice. N'appelle aucun outil. "
+    "N'écris pas le prénom de l'élève : cette réponse pourra être réutilisée pour la même question."
 )
 
 
@@ -49,13 +54,24 @@ def _sections_de_cours() -> list[tuple[str, str]]:
     return sections
 
 
-def presentation(notion: str) -> str:
-    """Résumé de la leçon tiré de docs/cours/ (sans la ligne de jeu, remplacée par les exercices)."""
+def _resume(corps: str) -> str:
+    lignes = [re.sub(r"^- ", "• ", l) for l in corps.splitlines() if l.strip() and "لُعْبَةٌ" not in l]
+    return "\n".join(lignes[:8])
+
+
+def presentation(notion: str, db=None) -> str:
+    """Résumé de la leçon tiré de docs/cours/ (sans la ligne de jeu, remplacée par les exercices) :
+    la section qui porte le nom de la leçon, sinon le passage de cours le plus proche (recherche du RAG)."""
     cle = normaliser(notion)
     for titre, corps in _sections_de_cours():
         if titre.startswith(cle) or cle in titre:
-            lignes = [re.sub(r"^- ", "• ", l) for l in corps.splitlines() if l.strip() and "لُعْبَةٌ" not in l]
-            return "\n".join(lignes[:8])
+            return _resume(corps)
+    if db is not None:
+        from rag.search import chercher
+
+        for passage in chercher(db, notion, limite=5):
+            if "cours/" in passage["reference"]:
+                return _resume(passage["texte"])
     return ""
 
 
@@ -98,15 +114,20 @@ def _proposer(ctx: Contexte, notion_precedente: str | None) -> tuple[str, str | 
     parties = []
     if suivant["notion"] != notion_precedente:
         parties.append(f"📘 دَرْسٌ جَدِيدٌ: {suivant['notion']}")
-        resume = presentation(suivant["notion"])
+        resume = presentation(suivant["notion"], ctx.db)
         if resume:
             parties.append(resume)
     parties.append(suivant["enonce"])
     return "\n\n".join(parties), suivant["exercice_id"]
 
 
+def _contexte(db, eleve_id: int, seance_id: int) -> Contexte:
+    (profil,) = db.execute("SELECT profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
+    return Contexte(db=db, eleve_id=eleve_id, seance_id=seance_id, profil=profil)
+
+
 def ouvrir(db, eleve_id: int, seance_id: int, objectif: int) -> str:
-    ctx = Contexte(db=db, eleve_id=eleve_id, seance_id=seance_id, profil="P1")
+    ctx = _contexte(db, eleve_id, seance_id)
     (prenom,) = db.execute("SELECT prenom FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
     texte, ex_id = _proposer(ctx, None)
     message = f"مَرْحَبًا يَا {prenom}! 👋 هَيَّا نَتَعَلَّمُ.\n\n{texte}"
@@ -116,15 +137,24 @@ def ouvrir(db, eleve_id: int, seance_id: int, objectif: int) -> str:
     return message
 
 
-def repondre(db, eleve_id: int, seance_id: int, texte: str, tuteur=None) -> dict:
-    """Réponse à un message de l'élève. Renvoie {"reponse", "terminee"}."""
+def repondre(db, eleve_id: int, seance_id: int, texte: str, tuteur=None, question: bool = False) -> dict:
+    """Réponse à un message de l'élève. Renvoie {"reponse", "terminee"}.
+    question : l'élève a touché « Poser une question » (grands) : c'est une question, pas une réponse."""
     etat = _etat(db, seance_id)
     ex_id = etat["exercice_en_cours"]
     if ex_id is None:  # plus d'exercice : la séance est finie
         return {"reponse": recapitulatif(db, eleve_id, seance_id), "terminee": True}
     notion, ex = EXERCICES[ex_id]
     choix = choix_de_l_enonce(ex["enonce"])
-    ctx = Contexte(db=db, eleve_id=eleve_id, seance_id=seance_id, profil="P1")
+    ctx = _contexte(db, eleve_id, seance_id)
+
+    if question:
+        return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, ex_id, tuteur)
+    if texte not in choix and texte != PAS_COMPRIS:
+        # Texte écrit au clavier : contrôle gratuit (mots-clés, données personnelles) ; s'il y a un signal,
+        # c'est l'IA (avec son contrôle complet et l'alerte au parent) qui répond.
+        if detresse.detecter(texte) or filtres.masquer(texte)[1]:
+            return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, ex_id, tuteur, memoriser=False)
 
     if texte == PAS_COMPRIS:
         if etat["aide_donnee"] == 0:
@@ -134,12 +164,9 @@ def repondre(db, eleve_id: int, seance_id: int, texte: str, tuteur=None) -> dict
             message = f"{ex['explication']}\n\n{ex['enonce']}"
             db.execute("UPDATE seances SET aide_donnee = 2 WHERE id = ?", (seance_id,))
         else:
-            return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, tuteur)
+            return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, ex_id, tuteur)
         _ajouter(db, seance_id, texte, message)
         return {"reponse": message, "terminee": False}
-
-    if choix and texte not in choix:
-        return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, tuteur)
 
     resultat = corriger.executer(ctx, {"exercice_id": ex_id, "reponse": texte})
     if resultat["verdict"] == "a_vocaliser":
@@ -169,22 +196,38 @@ def repondre(db, eleve_id: int, seance_id: int, texte: str, tuteur=None) -> dict
     return {"reponse": message, "terminee": False}
 
 
-def _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, tuteur) -> dict:
-    """Seul cas payant : un message libre de l'élève (ou une incompréhension après l'explication)."""
-    if tuteur is None:
+def _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, ex_id, tuteur, memoriser=True) -> dict:
+    """Seul cas payant : une question de l'élève (ou une incompréhension après l'explication).
+    Une réponse déjà donnée à la même question sur le même exercice est réutilisée, sans appel à l'IA."""
+    cle = normaliser(texte)
+    if memoriser:
+        deja = db.execute("SELECT reponse FROM reponses_ia WHERE exercice = ? AND question = ?", (ex_id, cle)).fetchone()
+        if deja:
+            db.execute("UPDATE reponses_ia SET utilisations = utilisations + 1 WHERE exercice = ? AND question = ?",
+                       (ex_id, cle))
+            message = f"{deja['reponse']}\n\n{ex['enonce']}"
+            _ajouter(db, seance_id, texte, message)
+            return {"reponse": message, "terminee": False}
+    if tuteur is None:  # IA injoignable (clé absente) : on redonne l'explication stockée
         message = f"{ex['explication']}\n\n{ex['enonce']}"
         _ajouter(db, seance_id, texte, message)
         return {"reponse": message, "terminee": False}
-    from agent.core import TuteurIndisponible
+    from agent.core import MESSAGE_INDISPONIBLE, MESSAGE_REFUS, TuteurIndisponible
 
     try:
         reponse = tuteur.repondre(db, eleve_id, seance_id, texte, boutons=(PAS_COMPRIS,),
                                   consigne=CONSIGNE_QUESTION.format(enonce=ex["enonce"]), outils=False)
-    except TuteurIndisponible:  # sans IA joignable, on redonne l'explication stockée
+    except TuteurIndisponible:
         reponse = ex["explication"]
         _ajouter(db, seance_id, texte, f"{reponse}\n\n{ex['enonce']}")
-    message = f"{reponse}\n\n{ex['enonce']}"
-    return {"reponse": message, "terminee": False}
+        return {"reponse": f"{reponse}\n\n{ex['enonce']}", "terminee": False}
+    alerte = db.execute("SELECT 1 FROM alertes WHERE seance_id = ? AND extrait = ?", (seance_id, texte[:300])).fetchone()
+    (prenom,) = db.execute("SELECT prenom FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
+    if (memoriser and not alerte and reponse not in (MESSAGE_INDISPONIBLE, MESSAGE_REFUS)
+            and normaliser(prenom) not in normaliser(reponse)):
+        db.execute("INSERT OR IGNORE INTO reponses_ia (exercice, question, reponse, cree_le) VALUES (?, ?, ?, ?)",
+                   (ex_id, cle, reponse, maintenant_iso()))
+    return {"reponse": f"{reponse}\n\n{ex['enonce']}", "terminee": False}
 
 
 def recapitulatif(db, eleve_id: int, seance_id: int) -> str:

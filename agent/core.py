@@ -196,7 +196,7 @@ class Tuteur:
             parametres["tool_choice"] = {"type": "none"}
         try:
             return self.client.beta.messages.create(**parametres)
-        except (anthropic.APIConnectionError, anthropic.APIStatusError) as e:
+        except (anthropic.APIConnectionError, anthropic.APIStatusError, TypeError) as e:  # TypeError : clé absente
             # Visible avec « docker compose logs tuteur » (clé refusée, crédit épuisé, réseau...).
             journal.error("Appel à l'API Claude impossible : %s", e)
             raise TuteurIndisponible(str(e)) from e

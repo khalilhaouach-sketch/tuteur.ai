@@ -58,7 +58,7 @@ class Classifieur:
             modele = json.loads(texte_json)
             signaux["detresse"] = signaux["detresse"] or bool(modele["detresse"])
             signaux["hors_sujet"] = bool(modele["hors_sujet"])
-        except (anthropic.APIError, StopIteration, json.JSONDecodeError, KeyError) as e:
+        except (anthropic.APIError, TypeError, StopIteration, json.JSONDecodeError, KeyError) as e:  # TypeError : clé absente
             journal.warning("classification indisponible, mots-clés seuls : %s", e)
         return signaux
 

@@ -22,7 +22,7 @@ MAX_MESSAGES_PAR_SEANCE = 60
 # Réponses simples proposées en boutons au CP (mêmes valeurs que dans apps/web/student/index.html).
 REPONSES_CP = ("نَعَمْ", "لَا", "لَمْ أَفْهَمْ")
 # Profils dont les séances sont menées sans IA (l'IA ne répond qu'aux messages libres).
-MODE_SANS_IA = {"P1"}
+MODE_SANS_IA = {"P1", "P2"}
 
 
 @lru_cache
@@ -53,6 +53,7 @@ class Debut(BaseModel):
 
 class Message(BaseModel):
     texte: str = Field(min_length=1, max_length=LONGUEUR_MAX_MESSAGE)
+    question: bool = False  # « Poser une question » : à l'IA, pas à la correction
 
 
 def _indisponible():
@@ -155,7 +156,7 @@ def envoyer(
     if nombre >= MAX_MESSAGES_PAR_SEANCE * 3:
         raise HTTPException(status.HTTP_409_CONFLICT, "Séance trop longue : termine-la et fais une pause.")
     if seance["mode"] == "local":
-        r = seance_locale.repondre(db, eleve_id, seance_id, message.texte.strip(), tuteur)
+        r = seance_locale.repondre(db, eleve_id, seance_id, message.texte.strip(), tuteur, message.question)
         if r["terminee"]:
             _fermer(db, eleve_id, seance_id, "eleve")
         return {"reponse": r["reponse"], "choix": seance_locale.choix_courants(db, seance_id), "terminee": r["terminee"]}

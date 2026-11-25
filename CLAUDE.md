@@ -37,6 +37,7 @@ Variables d'environnement :
 - Banques d'exercices : `agent/tools/exercices_cp.yaml`, `exercices_transition.yaml`, `exercices_primaire.yaml`, `exercices_1ac.yaml`
   (lettres : 15 à 17 par leçon, générés par `python3 -m scripts.generer_exercices_lettres` ; transition : 12 ; primaire et 1AC : 13).
   Réponses vocalisées ; un élève ne reçoit que les exercices de son palier et des paliers précédents.
-- Séances du style « enfant » (P1) sans IA : `agent/seance_locale.py` ; l'IA ne répond qu'aux messages libres.
+- Séances sans IA (P1 et P2) : `agent/seance_locale.py` ; l'IA ne répond qu'aux questions (réponses gardées
+  dans `reponses_ia`). L'agent IA complet (`agent/core.py`) reste testé avec la fixture `mode_ia`.
 - Parcours : `agent/parcours.yaml` (ordre des paliers, identifiants fixes enregistrés en base, seuil de passage 80 %) ;
   tests : `agent/evaluation.py`. Après une modification du parcours : `python3 -m agent.parcours` (régénère PARCOURS.md).
