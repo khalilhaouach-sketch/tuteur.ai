@@ -1,6 +1,7 @@
 """Séances de travail de l'élève avec l'agent tuteur."""
 
 import json
+import logging
 from functools import lru_cache
 
 import anthropic
@@ -29,7 +30,8 @@ def get_tuteur() -> Tuteur:
     """Remplacé par un faux client dans les tests (aucun appel réel à l'API)."""
     try:
         return Tuteur(_client_anthropic())
-    except anthropic.AnthropicError:  # ex. clé API absente
+    except anthropic.AnthropicError as e:  # ex. clé API absente
+        logging.getLogger("tuteur").error("Client Claude impossible à créer : %s", e)
         raise _indisponible()
 
 

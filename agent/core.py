@@ -5,6 +5,7 @@ et renvoyée telle quelle à chaque tour : on ne la modifie jamais, on ne fait q
 """
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -15,6 +16,8 @@ from agent.safety import filtres
 from agent.safety.classification import Classifieur
 from agent.db_utils import maintenant_iso
 from agent.tools import DEFINITIONS, Contexte, ErreurOutil, executer
+
+journal = logging.getLogger("tuteur")
 
 MODELE = "claude-opus-5-5"
 EFFORT = "medium"
@@ -180,6 +183,8 @@ class Tuteur:
         try:
             return self.client.beta.messages.create(**parametres)
         except (anthropic.APIConnectionError, anthropic.APIStatusError) as e:
+            # Visible avec « docker compose logs tuteur » (clé refusée, crédit épuisé, réseau...).
+            journal.error("Appel à l'API Claude impossible : %s", e)
             raise TuteurIndisponible(str(e)) from e
 
     @staticmethod
