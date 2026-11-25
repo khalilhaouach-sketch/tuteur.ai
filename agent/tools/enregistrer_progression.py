@@ -1,5 +1,6 @@
 """Met à jour le niveau de maîtrise de l'élève à partir du résultat réel de l'exercice."""
 
+from agent import memoire
 from agent.tools._commun import ErreurOutil, exercice, notion_id, schema
 
 DEFINITION = {
@@ -7,7 +8,8 @@ DEFINITION = {
     "description": (
         "Enregistre en base le résultat d'un exercice terminé (après le verdict final de corriger) "
         "et met à jour le niveau de maîtrise de la notion. Le résultat est lu depuis les corrections, "
-        "il n'a pas à être fourni."
+        "il n'a pas à être fourni. Indique si la leçon est acquise et, dans ce cas, la leçon suivante "
+        "du parcours, à commencer dans la même séance."
     ),
     "strict": True,
     "input_schema": schema({"exercice_id": {"type": "string"}}),
@@ -48,4 +50,10 @@ def executer(ctx, entree: dict) -> dict:
     (niveau,) = ctx.db.execute(
         "SELECT niveau FROM maitrise WHERE eleve_id = ? AND notion_id = ?", (ctx.eleve_id, nid)
     ).fetchone()
-    return {"notion": notion, "niveau_maitrise": round(niveau, 2), "enregistre": True}
+    resultat = {"notion": notion, "niveau_maitrise": round(niveau, 2), "enregistre": True,
+                "acquise": niveau >= memoire.SEUIL_ACQUIS}
+    if resultat["acquise"]:
+        # Pas d'arrêt sur une leçon acquise : on enchaîne sur la suivante du palier.
+        suivante = memoire.lecon_suivante(ctx.db, ctx.eleve_id)
+        resultat["lecon_suivante"] = suivante or "aucune : toutes les leçons du palier sont acquises, propose le test de passage"
+    return resultat

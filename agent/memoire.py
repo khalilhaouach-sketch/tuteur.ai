@@ -4,6 +4,8 @@ import sqlite3
 
 from agent.db_utils import maintenant
 
+SEUIL_ACQUIS = 0.6  # niveau de maîtrise à partir duquel une leçon est acquise
+
 
 def resume(db: sqlite3.Connection, eleve_id: int) -> str:
     eleve = db.execute("SELECT prenom, profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
@@ -53,21 +55,29 @@ def _parcours(db: sqlite3.Connection, eleve_id: int) -> list[str]:
 
     numero = parcours.palier_eleve(db, eleve_id) or 1
     p = parcours.palier(numero)
-    acquises = {
-        r["intitule"]
-        for r in db.execute(
-            "SELECT n.intitule FROM maitrise m JOIN notions n ON n.id = m.notion_id"
-            " WHERE m.eleve_id = ? AND m.niveau >= 0.6",
-            (eleve_id,),
-        )
-    }
     lignes = [f"- Palier actuel dans le parcours : {numero}/{parcours.DERNIER} « {p['titre']} »"
               f" ; leçons du palier : {'، '.join(p['notions'])}"]
     # Les paliers précédents sont validés : la leçon suivante est la première non acquise du palier actuel.
-    suivante = next((n for n in p["notions"] if n not in acquises), None)
+    suivante = lecon_suivante(db, eleve_id)
     if suivante:
         lignes.append(f"- Leçon suivante dans le parcours : {suivante}")
     else:
         lignes.append("- Toutes les leçons du palier sont acquises : encourage l'élève à passer le test de passage.")
     lignes.append("- Ne propose pas de leçon d'un palier suivant : l'élève y accède en réussissant le test de passage.")
     return lignes
+
+
+def lecon_suivante(db: sqlite3.Connection, eleve_id: int) -> str | None:
+    """Première leçon non acquise du palier actuel (les paliers précédents sont validés)."""
+    from agent import parcours
+
+    p = parcours.palier(parcours.palier_eleve(db, eleve_id) or 1)
+    acquises = {
+        r["intitule"]
+        for r in db.execute(
+            "SELECT n.intitule FROM maitrise m JOIN notions n ON n.id = m.notion_id"
+            " WHERE m.eleve_id = ? AND m.niveau >= ?",
+            (eleve_id, SEUIL_ACQUIS),
+        )
+    }
+    return next((n for n in p["notions"] if n not in acquises), None)

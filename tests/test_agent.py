@@ -397,3 +397,27 @@ def test_orthographe_de_la_hamza_stricte(client, appareil_eleve, eleve_connecte,
     assert verdict("wasl-3", "إِنْطِلَاقٌ") == "faux"       # hamza de liaison écrite comme hamza de coupure
     assert verdict("wasl-3", "انطلاق") == "juste"
     assert verdict("mizan-2", "اَفْعَلَ") == "juste"        # hors orthographe : hamza tolérée
+
+
+def test_lecon_acquise_enchaine_sur_la_suivante(client, appareil_eleve, eleve_connecte, faux_tuteur):
+    """Une fois «حرف الميم» acquis, l'outil donne la lettre suivante du palier : pas d'arrêt sur une lettre."""
+    from agent import parcours
+
+    s = _preparer(client, faux_tuteur, appareil_eleve)
+    ctx = _ctx(eleve_connecte["id"], s)
+    parcours.fixer_palier(ctx.db, eleve_connecte["id"], 1)
+    resultats = []
+    for ex, rep in [("cp-01-1", "مَ"), ("cp-01-2", "فَتْحَةٌ"), ("cp-01-3", "مَا")]:
+        assert executer(ctx, "corriger", {"exercice_id": ex, "reponse": rep})["verdict"] == "juste"
+        resultats.append(executer(ctx, "enregistrer_progression", {"exercice_id": ex}))
+    assert [r["acquise"] for r in resultats] == [False, False, True]
+    assert "lecon_suivante" not in resultats[0]
+    assert resultats[-1]["lecon_suivante"] == "حرف الباء"
+
+
+def test_prompts_enchainent_les_lecons_sans_annoncer_de_date():
+    for profil in ("P1", "P2"):
+        prompt = core.charger_prompt(profil)
+        assert "tu passes dans la même séance à la leçon suivante" in prompt
+        assert "tu ne les annonces pas à l'élève" in prompt
+    assert "Un seul objectif par séance" not in core.charger_prompt("P1")

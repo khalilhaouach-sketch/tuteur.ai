@@ -9,7 +9,8 @@ DEFINITION = {
     "name": "planifier_revision",
     "description": (
         "Fixe la date de la prochaine révision d'une notion selon le niveau de maîtrise de l'élève "
-        "(répétition espacée). À appeler après enregistrer_progression."
+        "(répétition espacée). À appeler après enregistrer_progression. La date est interne : "
+        "ne l'annonce pas à l'élève et ne t'arrête pas pour autant."
     ),
     "strict": True,
     "input_schema": schema({"notion": {"type": "string", "enum": NOMS_NOTIONS}}),
