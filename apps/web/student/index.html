@@ -142,6 +142,8 @@ function texteAPrononcer(texte) {
     .replace(/\u0640/g, "")                            // tatweel des formes de lettres (مـ ـمـ ـم)
     .replace(/[A-Za-zÀ-ÿ]+/g, "")                      // le tuteur ne lit que l'arabe
     .replace(/[«»"()\/]/g, " ")
+    .replace(/[*_#`~|>=\[\]{}<•→←]/g, " ")             // mise en forme (gras, titres, puces) : jamais lue
+    .replace(/(^|\n)\s*[-–]\s+/g, "$1")                // tirets de liste en début de ligne
     .replace(/\s+/g, " ").trim();
 }
 
@@ -173,11 +175,22 @@ $("test-voix").onclick = () => {
     : "Aucune voix arabe trouvée sur cet appareil : installez-en une dans les réglages du téléphone (Synthèse vocale).";
 };
 
+// Gras **mot** affiché en gras ; les autres symboles de mise en forme (# titres, * isolés) sont retirés.
+// Construit avec des nœuds texte : aucun HTML venant du modèle n'est interprété.
+function afficherMisEnForme(div, texte) {
+  const propre = texte.replace(/^#+\s*/gm, "").replace(/(^|\n)\s*\*\s+/g, "$1• ");
+  propre.split(/\*\*(.+?)\*\*/gs).forEach((morceau, i) => {
+    const sansEtoiles = morceau.replace(/\*/g, "");
+    if (i % 2) { const b = document.createElement("strong"); b.textContent = sansEtoiles; div.appendChild(b); }
+    else div.appendChild(document.createTextNode(sansEtoiles));
+  });
+}
+
 function ajouter(texte, qui) {
   const div = document.createElement("div");
   div.className = "msg " + qui;
   div.dir = "auto";
-  div.textContent = texte;
+  if (qui === "tuteur") afficherMisEnForme(div, texte); else div.textContent = texte;
   if (qui === "tuteur") {
     div.appendChild(boutonEcouter(texte));
     if (profil === "P1") parler(texte);  // au CP, le tuteur lit son message à voix haute

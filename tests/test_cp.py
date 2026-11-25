@@ -77,3 +77,11 @@ def test_page_eleve_lit_a_voix_haute_au_cp(client):
     for element in ["speechSynthesis", "texteAPrononcer", "boutonEcouter", 'id="test-voix"', '"ar-ma"', "u.rate = 0.8"]:
         assert element in page, element
     assert 'if (profil === "P1") parler(texte)' in page  # lecture automatique seulement au CP
+
+
+def test_la_voix_ne_lit_pas_la_mise_en_forme(client):
+    """Les astérisques du gras (**mot**), les # et les puces ne sont ni lus à voix haute ni affichés."""
+    page = client.get("/").text
+    assert 'replace(/[*_#`~|>=\\[\\]{}<•→←]/g, " ")' in page
+    assert "afficherMisEnForme(div, texte)" in page
+    assert "div.innerHTML" not in page  # le texte du modèle n'est jamais interprété comme du HTML
