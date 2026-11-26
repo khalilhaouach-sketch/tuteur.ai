@@ -41,18 +41,21 @@
 
   /* Voix (mode CP) */
   .ecouter { background:transparent; border:0; color:var(--accent); font-size:1.4rem; padding:4px 8px; cursor:pointer; }
-  .msg.tuteur .ecouter { display:none; }
-  body.mode-cp .msg.tuteur .ecouter { display:inline-block; margin-inline-start:8px; vertical-align:middle; }
+  .msg.tuteur .ecouter { display:inline-block; margin-inline-start:8px; vertical-align:middle; }
   .option { display:flex; flex-direction:column; align-items:center; gap:4px; }
-  #choix .option .ecouter { display:none; }
-  body.mode-cp #choix .option .ecouter { display:inline-block; background:transparent; border:0; min-width:0; min-height:0; font-size:1.6rem; padding:0; }
-  #test-voix { display:none; }
-  body.mode-cp #test-voix { display:inline-block; }
+  #choix .option .ecouter { display:inline-block; background:transparent; border:0; min-width:0; min-height:0; font-size:1.3rem; padding:0; }
+  body.mode-cp #choix .option .ecouter { font-size:1.6rem; }
 </style>
 </head>
 <body>
 <main>
   <div class="entete"><h1>Tuteur IA — arabe</h1><span><span id="qui"></span> <button id="changer" class="secondaire" hidden style="padding:4px 10px;font-size:.9rem">Changer d'enfant</button></span></div>
+
+  <section id="ecran-famille" class="carte" hidden>
+    <p style="font-size:1.3rem">Qui es-tu ? Touche ton prénom.</p>
+    <div id="enfants" style="display:flex;flex-wrap:wrap;gap:12px"></div>
+    <p class="erreur" id="erreur-famille"></p>
+  </section>
 
   <section id="ecran-code" class="carte" hidden>
     <p>Tape le code à 6 chiffres donné par ton parent.</p>
@@ -74,7 +77,14 @@
       <button id="commencer">Commencer la séance</button>
       <button id="test-passage" class="secondaire" hidden>🏆 Test de passage</button>
     </div>
-    <button id="test-voix" class="secondaire">🔊 Tester la voix</button>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
+      <button id="test-voix" class="secondaire">🔊 Tester la voix</button>
+      <label for="vitesse-voix">Vitesse de la voix</label>
+      <select id="vitesse-voix" style="width:auto">
+        <option value="0.5">Très lente</option><option value="0.65">Lente</option>
+        <option value="0.8">Moyenne</option><option value="1">Normale</option>
+      </select>
+    </div>
     <p class="doux" id="info-voix" style="color:var(--doux)"></p>
   </section>
 
@@ -122,7 +132,7 @@ async function api(chemin, corps) {
 }
 
 function afficher(ecran) {
-  for (const id of ["ecran-code", "ecran-accueil", "ecran-seance", "ecran-test"]) $(id).hidden = id !== ecran;
+  for (const id of ["ecran-famille", "ecran-code", "ecran-accueil", "ecran-seance", "ecran-test"]) $(id).hidden = id !== ecran;
 }
 
 function choisirProfil(p) {
@@ -160,11 +170,22 @@ function parler(texte) {
   if (!t) return false;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(t);
-  u.lang = "ar"; u.rate = 0.8;                        // un peu plus lent pour un enfant
+  u.lang = "ar"; u.rate = vitesseVoix();               // réglable sur l'écran d'accueil
   const v = meilleureVoix(); if (v) { u.voice = v; u.lang = v.lang; }
   speechSynthesis.speak(u);
   return true;
 }
+
+// Vitesse : choisie sur cet appareil (gardée dans le navigateur) ; par défaut lente au CP, moyenne sinon.
+function vitesseVoix() {
+  let v = null;
+  try { v = localStorage.getItem("vitesse-voix"); } catch {}
+  return Number(v) || (profil === "P1" ? 0.65 : 0.8);
+}
+$("vitesse-voix").onchange = () => {
+  try { localStorage.setItem("vitesse-voix", $("vitesse-voix").value); } catch {}
+  parler("بَ بُ بِ. بَابٌ.");
+};
 
 function boutonEcouter(texte) {
   const b = document.createElement("button");
@@ -238,6 +259,7 @@ async function occupe(action, zoneErreur) {
 function accueil(eleve) {
   const DERNIER_PALIER = eleve.dernier_palier;
   $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil); $("changer").hidden = false;
+  $("vitesse-voix").value = String(vitesseVoix());
   const positionne = eleve.palier !== null && eleve.palier !== undefined;
   $("mon-palier").textContent = positionne ? `Ton palier : ${eleve.palier}/${DERNIER_PALIER} · ${eleve.titre_palier}` : "";
   $("mon-palier").dir = "auto";
@@ -268,11 +290,27 @@ $("changer").onclick = async () => {
   }
   await api("/eleve/deconnexion", {}).catch(() => {});
   seanceId = null; $("qui").textContent = ""; $("changer").hidden = true; $("code").value = "";
-  afficher("ecran-code");
+  demarrer();  // appareil de la famille : retour au choix du prénom ; sinon, écran du code
 };
 
+// Au démarrage : l'enfant déjà connecté sur cet appareil ; sinon, sur l'appareil de la famille, le choix
+// du prénom (sans code) ; sinon le code donné par le parent.
 async function demarrer() {
-  try { accueil(await api("/eleve/moi")); } catch { afficher("ecran-code"); }
+  try { accueil(await api("/eleve/moi")); return; } catch {}
+  try {
+    const enfants = await api("/famille/eleves");
+    $("enfants").innerHTML = "";
+    for (const e of enfants) {
+      const b = document.createElement("button");
+      b.textContent = e.prenom; b.dir = "auto"; b.style.cssText = "font-size:1.8rem;padding:18px 26px;border-radius:16px";
+      b.onclick = () => occupe(async () => {
+        await api(`/famille/eleves/${e.id}/entrer`, {});
+        accueil(await api("/eleve/moi"));
+      }, "erreur-famille");
+      $("enfants").appendChild(b);
+    }
+    afficher("ecran-famille");
+  } catch { afficher("ecran-code"); }
 }
 
 // --- Tests de positionnement et de passage (corrigés automatiquement) ---

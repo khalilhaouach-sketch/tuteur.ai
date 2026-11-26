@@ -263,6 +263,17 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 - **Révision** : le tuteur peut reprendre les leçons des paliers précédents, jamais celles des paliers suivants.
 - Les tests sont corrigés automatiquement avec les banques d'exercices, sans l'agent.
 
+### Accès des enfants et voix
+
+- **Appareil de la maison** : le parent l'autorise une fois depuis son espace ; ensuite chaque enfant entre en
+  touchant son prénom, sans code (cookie « appareil_famille », un an, sans aucun droit parent ; le parent peut
+  retirer tous ces appareils). Pour le téléphone personnel d'un enfant : un code à 6 chiffres, une fois.
+- **Changer d'enfant** : bouton en haut de l'écran de l'élève (termine la séance en cours) ; le parent peut aussi
+  déconnecter tous les appareils d'un enfant.
+- **Session parent glissante** : chaque visite de l'espace parent la prolonge de 30 jours.
+- **Voix** : bouton 🔊 pour les deux styles (lecture automatique au CP seulement), vitesse réglable sur l'écran
+  d'accueil (très lente à normale ; lente par défaut au CP), gardée sur l'appareil.
+
 ### Phase 7 : le collège (2AC et 3AC)
 
 Quatre paliers de langue après la 1AC (`2ac-1`, `2ac-2`, `3ac-1`, `3ac-2`), 29 leçons, 13 exercices à boutons

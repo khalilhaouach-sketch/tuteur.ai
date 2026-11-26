@@ -61,6 +61,16 @@
       <p class="erreur" id="erreur-ajout"></p>
       <button id="ajouter">Ajouter</button>
     </div>
+    <div class="carte" style="margin-top:12px">
+      <h2>Ordinateur ou tablette de la maison</h2>
+      <p class="doux">Autorisez une fois cet appareil : ensuite, chaque enfant entre en touchant son prénom, sans code.
+        (Pour le téléphone personnel d'un enfant, utilisez plutôt un code, depuis sa fiche.)</p>
+      <div class="ligne" style="justify-content:flex-start;gap:8px;flex-wrap:wrap">
+        <button id="autoriser-appareil">Autoriser cet appareil et ouvrir l'espace des enfants</button>
+        <button id="retirer-appareils" class="lien">Retirer l'accès de tous les appareils de la maison</button>
+      </div>
+      <p class="doux" id="appareils-ok"></p>
+    </div>
   </section>
 
   <!-- Détail d'un enfant -->
@@ -257,7 +267,24 @@ async function journal(seance) {
 }
 $("retour-journal").onclick = () => detail(eleveCourant);
 
-api("/parents/moi").then(tableau).catch(() => afficher("ecran-connexion"));
+$("autoriser-appareil").onclick = async () => {
+  await api("/parents/appareil-famille", {});
+  location.href = "/";  // espace des enfants : « Qui es-tu ? »
+};
+$("retirer-appareils").onclick = async () => {
+  if (!confirm("Retirer l'accès sans code de tous les appareils de la maison ?")) return;
+  const r = await api("/parents/appareils-famille/retirer", {});
+  $("appareils-ok").textContent = `${r.appareils_retires} appareil(s) retiré(s).`;
+};
+
+// Au chargement : l'écran de connexion seulement si la session parent est vraiment absente ou expirée
+// (une erreur du tableau de bord ne doit pas faire croire à une déconnexion).
+(async () => {
+  try { await api("/parents/moi"); }
+  catch { afficher("ecran-connexion"); return; }
+  try { await tableau(); }
+  catch (e) { afficher("ecran-tableau"); $("liste-eleves").textContent = "Erreur de chargement : " + e.message + " (rafraîchissez la page)."; }
+})();
 </script>
 </body>
 </html>

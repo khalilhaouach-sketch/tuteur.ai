@@ -164,3 +164,11 @@ CREATE TABLE IF NOT EXISTS reponses_ia (
     cree_le      TEXT    NOT NULL,
     PRIMARY KEY (exercice, question)
 );
+
+-- Appareil de la famille (ordinateur ou tablette de la maison) : autorisé une fois par le parent, il affiche
+-- les prénoms des enfants ; chaque enfant entre en touchant son prénom, sans code. Ne donne aucun droit parent.
+CREATE TABLE IF NOT EXISTS appareils_famille (
+    jeton_hash TEXT    PRIMARY KEY,
+    parent_id  INTEGER NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
+    expire_le  TEXT    NOT NULL
+);

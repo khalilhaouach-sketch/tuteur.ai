@@ -279,3 +279,59 @@ def test_changer_d_enfant_et_deconnexion_par_le_parent(client, appareil_eleve, e
     client.post("/parents/deconnexion")
     inscrire(client, "autre@exemple.ma")
     assert client.post(f"/eleves/{eleve_connecte['id']}/deconnexion").status_code == 404
+
+
+def test_appareil_de_la_famille_sans_code(client, app):
+    """Le parent autorise l'appareil de la maison ; ensuite chaque enfant entre en touchant son prénom."""
+    from fastapi.testclient import TestClient
+
+    inscrire(client)
+    adam = client.post("/eleves", json={"prenom": "Adam", "profil": "P1"}).json()
+    sara = client.post("/eleves", json={"prenom": "Sara", "profil": "P2"}).json()
+    maison = TestClient(app, base_url="https://testserver")
+    # Avant autorisation : pas d'accès sans code.
+    assert maison.get("/famille/eleves").status_code == 401
+    # Le parent se connecte sur l'appareil de la maison et l'autorise, puis se déconnecte.
+    inscrire_ou_connecter = maison.post("/parents/connexion", json={"email": "parent@exemple.ma", "mot_de_passe": "motdepasse123"})
+    assert inscrire_ou_connecter.status_code == 200
+    assert maison.post("/parents/appareil-famille").json() == {"autorise": True}
+    maison.post("/parents/deconnexion")
+    # L'appareil ne donne aucun droit parent...
+    assert maison.get("/parents/moi").status_code == 401
+    # ... mais affiche les prénoms, et l'enfant entre sans code.
+    assert [e["prenom"] for e in maison.get("/famille/eleves").json()] == ["Adam", "Sara"]
+    assert maison.post(f"/famille/eleves/{sara['id']}/entrer").status_code == 200
+    assert maison.get("/eleve/moi").json()["prenom"] == "Sara"
+    # Changer d'enfant : on revient au choix des prénoms.
+    maison.post("/eleve/deconnexion")
+    maison.post(f"/famille/eleves/{adam['id']}/entrer")
+    assert maison.get("/eleve/moi").json()["prenom"] == "Adam"
+    # Un enfant d'une autre famille ne peut pas être ouvert depuis cet appareil.
+    client.post("/parents/deconnexion")
+    inscrire(client, "autre@exemple.ma")
+    autre = client.post("/eleves", json={"prenom": "Omar", "profil": "P1"}).json()
+    assert maison.post(f"/famille/eleves/{autre['id']}/entrer").status_code == 404
+    # Le parent retire l'accès : l'appareil redemande un code.
+    client.post("/parents/deconnexion")
+    client.post("/parents/connexion", json={"email": "parent@exemple.ma", "mot_de_passe": "motdepasse123"})
+    assert client.post("/parents/appareils-famille/retirer").json() == {"appareils_retires": 1}
+    assert maison.get("/famille/eleves").status_code == 401
+
+
+def test_session_parent_prolongee_a_chaque_visite(client):
+    inscrire(client)
+    from apps.api import db as base
+
+    conn = base.ouvrir()
+    conn.execute("UPDATE connexions SET expire_le = '2000-01-02T00:00:00+00:00' WHERE parent_id IS NOT NULL")
+    conn.commit()
+    assert client.get("/parents/moi").status_code == 401  # expirée : il faut se reconnecter
+    client.post("/parents/connexion", json={"email": "parent@exemple.ma", "mot_de_passe": "motdepasse123"})
+    conn.execute("DELETE FROM connexions WHERE expire_le < '2001'")
+    conn.commit()
+    avant = conn.execute("SELECT expire_le FROM connexions WHERE parent_id IS NOT NULL").fetchone()[0]
+    conn.execute("UPDATE connexions SET expire_le = ? WHERE parent_id IS NOT NULL", ("2099-01-01T00:00:00+00:00",))
+    conn.commit()
+    assert client.get("/parents/moi").status_code == 200
+    apres = conn.execute("SELECT expire_le FROM connexions WHERE parent_id IS NOT NULL").fetchone()[0]
+    assert apres != "2099-01-01T00:00:00+00:00" and apres[:7] == avant[:7]

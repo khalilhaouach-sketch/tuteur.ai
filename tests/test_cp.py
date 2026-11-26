@@ -143,7 +143,7 @@ def test_page_eleve_lit_a_voix_haute_au_cp(client):
     """La voix du téléphone (synthèse du navigateur) : lecture des messages et des choix au CP.
     Vérifiée aussi dans un vrai navigateur avec une voix simulée (voir le compte rendu de la phase 5)."""
     page = client.get("/").text
-    for element in ["speechSynthesis", "texteAPrononcer", "boutonEcouter", 'id="test-voix"', '"ar-ma"', "u.rate = 0.8"]:
+    for element in ["speechSynthesis", "texteAPrononcer", "boutonEcouter", 'id="test-voix"', '"ar-ma"', "u.rate = vitesseVoix()", "vitesse-voix"]:
         assert element in page, element
     assert 'if (profil === "P1") parler(texte)' in page  # lecture automatique seulement au CP
 
@@ -169,3 +169,10 @@ def test_seance_au_college(client, appareil_eleve, faux_tuteur):
     r = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()
     assert "دَرْسٌ جَدِيدٌ: أسلوب التعجب" in r["reponse"] and "مَا أَفْعَلَهُ" in r["reponse"]
     assert len(r["choix"]) >= 2
+
+
+def test_page_eleve_choix_du_prenom_et_voix_pour_tous(client):
+    page = client.get("/").text
+    assert 'id="ecran-famille"' in page and "/famille/eleves" in page and 'id="changer"' in page
+    # Le bouton 🔊 n'est plus réservé au CP ; la lecture automatique, si.
+    assert "body.mode-cp .msg.tuteur .ecouter" not in page and 'if (profil === "P1") parler(texte)' in page

@@ -175,7 +175,15 @@ def deconnecter_parent(
 
 
 @router.get("/parents/moi", tags=["parents"])
-def parent_actuel(parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
+def parent_actuel(
+    reponse: Response,
+    parent_id: int = Depends(parent_connecte),
+    session_parent: str | None = Cookie(default=None),
+    db=Depends(get_db),
+):
+    # À chaque ouverture de l'espace parent, la session et son cookie repartent pour 30 jours.
+    securite.prolonger_connexion(db, session_parent, securite.DUREE_CONNEXION_PARENT_JOURS)
+    _poser_cookie(reponse, COOKIE_PARENT, session_parent, securite.DUREE_CONNEXION_PARENT_JOURS)
     ligne = db.execute("SELECT email FROM parents WHERE id = ?", (parent_id,)).fetchone()
     return {"email": ligne["email"]}
 

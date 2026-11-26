@@ -57,6 +57,11 @@ def ouvrir_connexion(
     return jeton
 
 
+def prolonger_connexion(db: sqlite3.Connection, jeton: str, jours: int) -> None:
+    """Session glissante : chaque visite repousse l'expiration (on ne se déconnecte pas en restant actif)."""
+    db.execute("UPDATE connexions SET expire_le = ? WHERE jeton_hash = ?", (dans(days=jours), empreinte(jeton)))
+
+
 def fermer_connexion(db: sqlite3.Connection, jeton: str) -> None:
     db.execute("DELETE FROM connexions WHERE jeton_hash = ?", (empreinte(jeton),))
 
