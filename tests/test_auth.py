@@ -262,3 +262,20 @@ def test_inscriptions_fermees(client, monkeypatch):
     client.post("/parents/deconnexion")               # le parent, lui, peut toujours se connecter
     assert client.post("/parents/connexion",
                        json={"email": "parent@exemple.ma", "mot_de_passe": "motdepasse123"}).status_code == 200
+
+
+def test_changer_d_enfant_et_deconnexion_par_le_parent(client, appareil_eleve, eleve_connecte):
+    # L'enfant se déconnecte lui-même (appareil partagé).
+    assert appareil_eleve.get("/eleve/moi").status_code == 200
+    assert appareil_eleve.post("/eleve/deconnexion").status_code == 204
+    assert appareil_eleve.get("/eleve/moi").status_code == 401
+    # Reconnecté avec un nouveau code, puis déconnecté de tous ses appareils par le parent.
+    code = client.post(f"/eleves/{eleve_connecte['id']}/code").json()["code"]
+    appareil_eleve.post("/eleve/connexion", json={"code": code})
+    assert appareil_eleve.get("/eleve/moi").status_code == 200
+    assert client.post(f"/eleves/{eleve_connecte['id']}/deconnexion").json() == {"appareils_deconnectes": 1}
+    assert appareil_eleve.get("/eleve/moi").status_code == 401
+    # Un autre parent ne peut pas déconnecter cet enfant.
+    client.post("/parents/deconnexion")
+    inscrire(client, "autre@exemple.ma")
+    assert client.post(f"/eleves/{eleve_connecte['id']}/deconnexion").status_code == 404

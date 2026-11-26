@@ -52,7 +52,7 @@
 </head>
 <body>
 <main>
-  <div class="entete"><h1>Tuteur IA — arabe</h1><span id="qui"></span></div>
+  <div class="entete"><h1>Tuteur IA — arabe</h1><span><span id="qui"></span> <button id="changer" class="secondaire" hidden style="padding:4px 10px;font-size:.9rem">Changer d'enfant</button></span></div>
 
   <section id="ecran-code" class="carte" hidden>
     <p>Tape le code à 6 chiffres donné par ton parent.</p>
@@ -237,7 +237,7 @@ async function occupe(action, zoneErreur) {
 // Accueil : position dans le parcours, et les boutons utiles à ce moment-là.
 function accueil(eleve) {
   const DERNIER_PALIER = eleve.dernier_palier;
-  $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil);
+  $("qui").textContent = eleve.prenom; choisirProfil(eleve.profil); $("changer").hidden = false;
   const positionne = eleve.palier !== null && eleve.palier !== undefined;
   $("mon-palier").textContent = positionne ? `Ton palier : ${eleve.palier}/${DERNIER_PALIER} · ${eleve.titre_palier}` : "";
   $("mon-palier").dir = "auto";
@@ -259,6 +259,17 @@ function accueil(eleve) {
   afficher("ecran-accueil");
 }
 let nombreChoisi = null;
+
+// Appareil partagé (ordinateur de la maison) : l'enfant se déconnecte ; le suivant entre son propre code.
+$("changer").onclick = async () => {
+  if (seanceId && !$("ecran-seance").hidden) {
+    if (!confirm("Terminer la séance et changer d'enfant ?")) return;
+    await api(`/eleve/seances/${seanceId}/fin`, {}).catch(() => {});
+  }
+  await api("/eleve/deconnexion", {}).catch(() => {});
+  seanceId = null; $("qui").textContent = ""; $("changer").hidden = true; $("code").value = "";
+  afficher("ecran-code");
+};
 
 async function demarrer() {
   try { accueil(await api("/eleve/moi")); } catch { afficher("ecran-code"); }

@@ -239,6 +239,14 @@ def regler(eleve_id: int, reglages: Reglages, parent_id: int = Depends(parent_co
     return {"exercices_par_seance": reglages.exercices_par_seance}
 
 
+@router.post("/eleves/{eleve_id}/deconnexion", tags=["élèves"])
+def deconnecter_appareils(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
+    """Le parent déconnecte tous les appareils de l'enfant (ordinateur prêté, téléphone perdu...)."""
+    _eleve_du_parent(db, eleve_id, parent_id)
+    n = db.execute("DELETE FROM connexions WHERE eleve_id = ?", (eleve_id,)).rowcount
+    return {"appareils_deconnectes": n}
+
+
 @router.post("/eleves/{eleve_id}/code", tags=["élèves"])
 def generer_code(eleve_id: int, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     """Code à 6 chiffres, valable 15 minutes et une seule fois, à taper sur l'appareil de l'élève."""
@@ -268,6 +276,16 @@ def connecter_eleve(
     _poser_cookie(reponse, COOKIE_ELEVE, jeton, securite.DUREE_CONNEXION_ELEVE_JOURS)
     ligne = db.execute("SELECT id, prenom, profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
     return dict(ligne)
+
+
+@router.post("/eleve/deconnexion", status_code=status.HTTP_204_NO_CONTENT, tags=["espace élève"])
+def deconnecter_eleve(
+    reponse: Response, session_eleve: str | None = Cookie(default=None), db=Depends(get_db)
+):
+    """« Changer d'enfant » sur un appareil partagé : il faudra un nouveau code pour revenir."""
+    if session_eleve:
+        securite.fermer_connexion(db, session_eleve)
+    reponse.delete_cookie(COOKIE_ELEVE)
 
 
 @router.get("/eleve/moi", response_model=Eleve, tags=["espace élève"])
