@@ -117,8 +117,8 @@ def test_eleve_sans_donnees_superflues(client):
     inscrire(client)
     client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"})
     colonnes = {c[1] for c in db.ouvrir().execute("PRAGMA table_info(eleves)")}
-    # Un réglage (nombre d'exercices proposé), pas une donnée personnelle.
-    assert colonnes == {"id", "parent_id", "prenom", "profil", "palier", "exercices_par_seance", "cree_le"}
+    # Un réglage (nombre d'exercices proposé) et le mot secret haché : pas de donnée personnelle superflue.
+    assert colonnes == {"id", "parent_id", "prenom", "profil", "palier", "exercices_par_seance", "secret_hash", "cree_le"}
 
 
 def test_profil_invalide(client):
@@ -172,7 +172,7 @@ def test_parcours_complet(client, appareil_eleve):
 
     r = appareil_eleve.post("/eleve/connexion", json={"code": code})
     assert r.status_code == 200
-    assert r.json() == {"id": eleve["id"], "prenom": "Yasmine", "profil": "P2", "palier": None, "titre_palier": None, "dernier_palier": None, "exercices_par_seance": 10}
+    assert r.json() == {"id": eleve["id"], "prenom": "Yasmine", "profil": "P2", "palier": None, "titre_palier": None, "dernier_palier": None, "exercices_par_seance": 10, "secret_defini": None}
     # L'appareil se souvient de l'élève.
     assert appareil_eleve.get("/eleve/moi").json()["prenom"] == "Yasmine"
     # L'élève n'a pas accès à l'espace parent.
@@ -335,3 +335,28 @@ def test_session_parent_prolongee_a_chaque_visite(client):
     assert client.get("/parents/moi").status_code == 200
     apres = conn.execute("SELECT expire_le FROM connexions WHERE parent_id IS NOT NULL").fetchone()[0]
     assert apres != "2099-01-01T00:00:00+00:00" and apres[:7] == avant[:7]
+
+
+
+def test_enfant_entre_seul_avec_prenom_et_mot_secret(client, app):
+    """Sans le parent : prénom + mot secret, sur n'importe quel appareil ; essais limités."""
+    from fastapi.testclient import TestClient
+
+    inscrire(client)
+    adam = client.post("/eleves", json={"prenom": "Adam", "profil": "P1"}).json()
+    assert client.put(f"/eleves/{adam['id']}/secret", json={"secret": "abc"}).status_code == 422  # trop court
+    assert client.put(f"/eleves/{adam['id']}/secret", json={"secret": "soleil7"}).json() == {"secret_defini": True}
+    assert client.get("/parents/tableau").json()[0]["secret_defini"] == 1
+    ailleurs = TestClient(app, base_url="https://testserver")
+    assert ailleurs.post("/eleve/entrer", json={"prenom": "Adam", "secret": "mauvais"}).status_code == 401
+    r = ailleurs.post("/eleve/entrer", json={"prenom": "  adam ", "secret": "soleil7"})
+    assert r.status_code == 200 and r.json()["prenom"] == "Adam"
+    assert ailleurs.get("/eleve/moi").json()["prenom"] == "Adam"
+    # Le mot secret est haché en base.
+    from apps.api import db as base
+    assert "soleil7" not in base.ouvrir().execute("SELECT secret_hash FROM eleves").fetchone()[0]
+    # Trop d'essais ratés sur ce prénom : bloqué 15 minutes, même avec le bon mot.
+    autre = TestClient(app, base_url="https://testserver")
+    for _ in range(10):
+        autre.post("/eleve/entrer", json={"prenom": "Adam", "secret": "faux"})
+    assert autre.post("/eleve/entrer", json={"prenom": "Adam", "secret": "soleil7"}).status_code == 429

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS eleves (
     profil    TEXT    NOT NULL CHECK (profil IN ('P1', 'P2')),  -- style : P1 enfant, P2 adolescent
     palier    TEXT,                            -- identifiant du palier dans le parcours (NULL : pas encore positionné)
     exercices_par_seance INTEGER NOT NULL DEFAULT 10,  -- nombre proposé à l'enfant, réglé par le parent
+    secret_hash TEXT,                          -- mot secret de l'enfant (haché) : il entre seul avec prénom + mot secret
     cree_le   TEXT    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_eleves_parent ON eleves(parent_id);

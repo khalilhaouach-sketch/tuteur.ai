@@ -16,6 +16,7 @@ DUREE_CODE_MINUTES = 15
 FENETRE_ESSAIS_MINUTES = 15
 MAX_ESSAIS_CODE = 5       # par adresse IP
 MAX_ESSAIS_PARENT = 10    # par adresse e-mail
+MAX_ESSAIS_ENFANT = 10    # mot secret : par adresse IP et par prénom
 
 
 def hacher_mot_de_passe(mot_de_passe: str) -> str:

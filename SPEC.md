@@ -265,6 +265,10 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 
 ### Accès des enfants et voix
 
+- **Prénom + mot secret** (accès principal) : le parent choisit une fois le mot secret de chaque enfant (haché en
+  base) ; l'enfant entre ensuite seul, sur n'importe quel appareil, même en l'absence du parent. Essais limités
+  (10 échecs en 15 minutes par appareil et par prénom). Le parent ne fait que regarder (séances, journal, bilans).
+
 - **Appareil de la maison** : le parent l'autorise une fois depuis son espace ; ensuite chaque enfant entre en
   touchant son prénom, sans code (cookie « appareil_famille », un an, sans aucun droit parent ; le parent peut
   retirer tous ces appareils). Pour le téléphone personnel d'un enfant : un code à 6 chiffres, une fois.

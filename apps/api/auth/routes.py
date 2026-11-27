@@ -88,6 +88,20 @@ class Eleve(BaseModel):
     titre_palier: str | None = None
     dernier_palier: int | None = None
     exercices_par_seance: int = 10  # nombre d'exercices proposé à l'enfant (réglé par le parent)
+    secret_defini: bool | None = None
+
+
+class MotSecret(BaseModel):
+    secret: str = Field(min_length=4, max_length=40)
+
+
+class EntreeEnfant(BaseModel):
+    prenom: str = Field(min_length=1, max_length=30)
+    secret: str = Field(min_length=1, max_length=40)
+
+
+def _cle_prenom(prenom: str) -> str:
+    return " ".join(prenom.split()).casefold()
 
 
 class Reglages(BaseModel):
@@ -239,6 +253,15 @@ def supprimer_eleve(eleve_id: int, parent_id: int = Depends(parent_connecte), db
     db.execute("DELETE FROM eleves WHERE id = ?", (eleve_id,))
 
 
+@router.put("/eleves/{eleve_id}/secret", tags=["élèves"])
+def definir_secret(eleve_id: int, donnees: MotSecret, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
+    """Mot secret de l'enfant : avec son prénom, il entre seul, sur n'importe quel appareil."""
+    _eleve_du_parent(db, eleve_id, parent_id)
+    db.execute("UPDATE eleves SET secret_hash = ? WHERE id = ?",
+               (securite.hacher_mot_de_passe(donnees.secret.strip()), eleve_id))
+    return {"secret_defini": True}
+
+
 @router.put("/eleves/{eleve_id}/reglages", tags=["élèves"])
 def regler(eleve_id: int, reglages: Reglages, parent_id: int = Depends(parent_connecte), db=Depends(get_db)):
     """Nombre d'exercices proposé à l'enfant au début de chaque séance (il peut en choisir un autre)."""
@@ -284,6 +307,29 @@ def connecter_eleve(
     _poser_cookie(reponse, COOKIE_ELEVE, jeton, securite.DUREE_CONNEXION_ELEVE_JOURS)
     ligne = db.execute("SELECT id, prenom, profil FROM eleves WHERE id = ?", (eleve_id,)).fetchone()
     return dict(ligne)
+
+
+@router.post("/eleve/entrer", response_model=Eleve, tags=["espace élève"])
+def entrer_avec_secret(donnees: EntreeEnfant, requete: Request, reponse: Response, db=Depends(get_db)):
+    """L'enfant entre seul : prénom + mot secret (essais limités par appareil et par prénom)."""
+    cles = (f"secret-ip:{_ip(requete)}", f"secret-prenom:{_cle_prenom(donnees.prenom)}")
+    if any(securite.trop_d_essais(db, c, securite.MAX_ESSAIS_ENFANT) for c in cles):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Trop d'essais. Réessaie dans 15 minutes.")
+    trouve = None
+    for e in db.execute("SELECT id, prenom, secret_hash FROM eleves WHERE secret_hash IS NOT NULL").fetchall():
+        if _cle_prenom(e["prenom"]) == _cle_prenom(donnees.prenom) and \
+                securite.verifier_mot_de_passe(donnees.secret.strip(), e["secret_hash"]):
+            trouve = e["id"]
+            break
+    if trouve is None:
+        securite.verifier_mot_de_passe(donnees.secret, securite.EMPREINTE_FACTICE)  # même durée de réponse
+        for c in cles:
+            securite.noter_essai_echoue(db, c)
+        db.commit()
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Prénom ou mot secret incorrect.")
+    jeton = securite.ouvrir_connexion(db, eleve_id=trouve)
+    _poser_cookie(reponse, COOKIE_ELEVE, jeton, securite.DUREE_CONNEXION_ELEVE_JOURS)
+    return dict(db.execute("SELECT id, prenom, profil FROM eleves WHERE id = ?", (trouve,)).fetchone())
 
 
 @router.post("/eleve/deconnexion", status_code=status.HTTP_204_NO_CONTENT, tags=["espace élève"])

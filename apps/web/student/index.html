@@ -58,10 +58,16 @@
   </section>
 
   <section id="ecran-code" class="carte" hidden>
-    <p>Tape le code à 6 chiffres donné par ton parent.</p>
-    <input id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456">
+    <p style="font-size:1.2rem">Bonjour ! Écris ton prénom et ton mot secret.</p>
+    <input id="entree-prenom" dir="auto" autocomplete="username" placeholder="Ton prénom">
+    <input id="entree-secret" type="password" autocomplete="current-password" placeholder="Ton mot secret" style="margin-top:8px">
     <p class="erreur" id="erreur-code"></p>
-    <button id="valider-code">Entrer</button>
+    <button id="valider-secret">Entrer</button>
+    <p style="margin-top:16px"><button id="avec-code" class="lien" style="background:none;color:var(--accent);padding:0">J'ai un code à 6 chiffres</button></p>
+    <div id="zone-code" hidden>
+      <input id="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456">
+      <button id="valider-code" style="margin-top:8px">Entrer avec le code</button>
+    </div>
   </section>
 
   <section id="ecran-accueil" class="carte" hidden>
@@ -367,6 +373,14 @@ function finTest(res) {
   $("test-fin").hidden = false;
 }
 $("test-fin").onclick = () => demarrer();
+
+$("valider-secret").onclick = () => occupe(async () => {
+  await api("/eleve/entrer", { prenom: $("entree-prenom").value.trim(), secret: $("entree-secret").value });
+  $("entree-secret").value = "";
+  accueil(await api("/eleve/moi"));
+}, "erreur-code");
+$("entree-secret").addEventListener("keydown", (e) => { if (e.key === "Enter") $("valider-secret").click(); });
+$("avec-code").onclick = () => { $("zone-code").hidden = !$("zone-code").hidden; };
 
 $("valider-code").onclick = () => occupe(async () => {
   await api("/eleve/connexion", { code: $("code").value.trim() });

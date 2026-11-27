@@ -47,7 +47,7 @@ _COLONNES_AJOUTEES = {
                 "exercice_en_cours": "TEXT",
                 "aide_donnee": "INTEGER NOT NULL DEFAULT 0",
                 "exercices_faits": "INTEGER NOT NULL DEFAULT 0"},
-    "eleves": {"palier": "TEXT", "exercices_par_seance": "INTEGER NOT NULL DEFAULT 10"},
+    "eleves": {"palier": "TEXT", "exercices_par_seance": "INTEGER NOT NULL DEFAULT 10", "secret_hash": "TEXT"},
 }
 
 

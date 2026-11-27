@@ -77,7 +77,17 @@
   <section id="ecran-eleve" hidden style="display:flex;flex-direction:column;gap:12px">
     <div class="ligne"><button id="retour" class="lien">← Retour</button><h2 id="nom-eleve" style="margin:0"></h2></div>
     <div id="zone-alertes"></div>
-    <div class="carte"><h2>Connecter la tablette de l'enfant</h2>
+    <div class="carte"><h2>Mot secret de l'enfant</h2>
+      <p class="doux">Avec son prénom et ce mot secret, l'enfant entre seul sur le tuteur, sur n'importe quel appareil,
+        même quand vous n'êtes pas là. Au moins 4 caractères, facile à retenir pour lui (vous pouvez le changer à tout moment).</p>
+      <p id="etat-secret" class="doux"></p>
+      <div class="ligne">
+        <input id="nouveau-secret" placeholder="Nouveau mot secret" autocomplete="off" style="margin:0">
+        <button id="enregistrer-secret" class="secondaire">Enregistrer</button>
+      </div>
+      <p class="erreur" id="erreur-secret"></p>
+    </div>
+    <div class="carte"><h2>Connecter la tablette de l'enfant (avec un code)</h2>
       <p class="doux">Le code est valable 15 minutes et une seule fois. Ouvrez la page du tuteur sur l'appareil de l'enfant et tapez-le.</p>
       <div class="ligne"><span id="code" class="code"></span><button id="generer-code" class="secondaire">Générer un code</button></div>
       <div class="ligne" style="margin-top:8px"><span class="doux" id="deconnexion-ok"></span><button id="deconnecter-appareils" class="lien">Déconnecter tous ses appareils</button></div>
@@ -177,6 +187,8 @@ $("ajouter").onclick = () => essai(async () => {
 // Détail d'un enfant
 async function detail(e) {
   eleveCourant = e; $("nom-eleve").textContent = `${e.prenom} · ${PROFILS[e.profil]}`; $("code").textContent = "";
+  $("etat-secret").textContent = e.secret_defini ? "✅ Mot secret défini." : "Pas encore de mot secret : l'enfant ne peut pas entrer seul.";
+  $("nouveau-secret").value = ""; $("erreur-secret").textContent = "";
   $("nombre-exercices").value = e.exercices_par_seance || 10; $("nombre-ok").textContent = ""; $("deconnexion-ok").textContent = "";
   const [alertes, prog, bilans, seances, parcours] = await Promise.all([
     api(`/eleves/${e.id}/alertes`), api(`/eleves/${e.id}/progression`),
@@ -241,6 +253,15 @@ async function detail(e) {
   afficher("ecran-eleve");
 }
 $("retour").onclick = tableau;
+$("enregistrer-secret").onclick = async () => {
+  $("erreur-secret").textContent = "";
+  try {
+    await api(`/eleves/${eleveCourant.id}/secret`, { secret: $("nouveau-secret").value.trim() }, "PUT");
+    eleveCourant.secret_defini = true;
+    $("etat-secret").textContent = `✅ Mot secret enregistré. ${eleveCourant.prenom} entre avec son prénom et ce mot secret.`;
+    $("nouveau-secret").value = "";
+  } catch (e) { $("erreur-secret").textContent = e.message; }
+};
 $("deconnecter-appareils").onclick = async () => {
   if (!confirm(`Déconnecter ${eleveCourant.prenom} de tous ses appareils ? Il faudra un nouveau code pour revenir.`)) return;
   const r = await api(`/eleves/${eleveCourant.id}/deconnexion`, {});
