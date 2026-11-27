@@ -60,25 +60,37 @@ def _resume(corps: str) -> str:
     return "\n".join(lignes[:8])
 
 
+def _section(notion: str) -> str | None:
+    """Section de cours d'une leçon : titre identique, sinon titre qui commence par le nom de la leçon,
+    sinon titre qui le contient comme mots entiers (« إن وأخواتها » ne doit pas trouver « كان وأخواتها »)."""
+    cle = normaliser(notion)
+    sections = _sections_de_cours()
+    for test in (lambda t: t == cle,
+                 lambda t: t.startswith(cle + " ") or t.startswith(cle),
+                 lambda t: f" {cle} " in f" {t} "):
+        for titre, corps in sections:
+            if test(titre):
+                return corps
+    return None
+
+
 def etapes(notion: str) -> list[str]:
     """Leçon découpée en petites étapes (lignes « --- » dans la section de docs/cours/) ; [] si non découpée."""
-    cle = normaliser(notion)
-    for titre, corps in _sections_de_cours():
-        if (titre.startswith(cle) or cle in titre) and re.search(r"^---\s*$", corps, re.M):
-            return [
-                "\n".join(re.sub(r"^- ", "• ", l) for l in bloc.strip().splitlines() if l.strip())
-                for bloc in re.split(r"^---\s*$", corps, flags=re.M) if bloc.strip()
-            ]
-    return []
+    corps = _section(notion)
+    if not corps or not re.search(r"^---\s*$", corps, re.M):
+        return []
+    return [
+        "\n".join(re.sub(r"^- ", "• ", l) for l in bloc.strip().splitlines() if l.strip())
+        for bloc in re.split(r"^---\s*$", corps, flags=re.M) if bloc.strip()
+    ]
 
 
 def presentation(notion: str, db=None) -> str:
     """Résumé de la leçon tiré de docs/cours/ (sans la ligne de jeu, remplacée par les exercices) :
     la section qui porte le nom de la leçon, sinon le passage de cours le plus proche (recherche du RAG)."""
-    cle = normaliser(notion)
-    for titre, corps in _sections_de_cours():
-        if titre.startswith(cle) or cle in titre:
-            return _resume(corps)
+    corps = _section(notion)
+    if corps:
+        return _resume(corps)
     if db is not None:
         from rag.search import chercher
 

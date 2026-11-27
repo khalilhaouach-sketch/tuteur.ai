@@ -268,7 +268,9 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 Une leçon peut être découpée en étapes dans `docs/cours/` (lignes `---` dans sa section) : l'élève voit une étape
 à la fois, avec un exemple simple d'abord, et passe à la suivante avec « فَهِمْتُ، التَّالِي ← » ; « لَمْ أَفْهَمْ »
 fait réexpliquer l'étape par l'IA (réponse gardée). Les exercices commencent après la dernière étape.
-Essai sur « أسلوب التعجب » ; les autres leçons gardent un résumé d'un bloc tant qu'elles ne sont pas découpées.
+Fait : « أسلوب التعجب » et les 23 leçons de la 1AC (cours réécrits et entièrement vocalisés, ainsi que les
+69 exercices d'origine). Les autres leçons gardent un résumé d'un bloc tant qu'elles ne sont pas découpées.
+Un test vérifie que tout le texte arabe des exercices et des cours est vocalisé.
 
 ### Accès des enfants et voix
 

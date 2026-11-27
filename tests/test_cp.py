@@ -94,8 +94,10 @@ def test_grand_sans_ia_reponse_ecrite_et_securite(client, appareil_eleve, faux_t
     faux = faux_tuteur([reponse(texte("أَنَا هُنَا لِأُسَاعِدَكَ. تَحَدَّثْ مَعَ وَالِدَيْكَ."))])
     r = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()
     s = r["seance_id"]
+    while r["choix"] == ["فَهِمْتُ، التَّالِي ←"]:  # étapes du cours d'abord
+        r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "فَهِمْتُ، التَّالِي ←"}).json()
     ex_id = _exercice_en_cours(s)
-    assert r["objectif"] == 5 and ex_id and faux.appels == []
+    assert ex_id and faux.appels == []
     # Réponse écrite au clavier, corrigée sans IA.
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": _bonne(ex_id)}).json()
     assert not r["terminee"] and faux.appels == []

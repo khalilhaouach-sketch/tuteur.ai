@@ -85,8 +85,8 @@ def test_trois_notions_du_cp(base_indexee, question, lettre):
 
 def test_notion_1ac(base_indexee):
     resultats = chercher(base_indexee, "والميزانُ الصَّرْفِيُّ", "P2")
-    assert resultats[0]["reference"] == "docs/cours/1ac_dawra1.md — الميزان الصرفي والمجرد والمزيد"
-    assert "الفاء والعين واللام" in resultats[0]["texte"]
+    assert resultats[0]["reference"] == "docs/cours/1ac_dawra1.md — الميزان الصرفي (المجرد والمزيد)"
+    assert "ف ع ل" in resultats[0]["texte"]
 
 
 def test_niveau_respecte(base_indexee):
@@ -142,11 +142,11 @@ def test_le_cours_passe_avant_la_liste_du_programme(base_indexee):
 @pytest.mark.parametrize("question, lecon", [
     ("الضمير المتصل", "الضمير المتصل"),
     ("الاسم الموصول", "الاسم الموصول"),
-    ("ظن وأخواتها", "أصلهما مبتدأ وخبر"),
+    ("ظن وأخواتها", "ظن وأخواتها"),
     ("المبني للمجهول", "المبني للمجهول وأحكامه"),
     ("الفعل الأجوف", "المثال والأجوف"),
-    ("جزم المضارع", "إعراب الفعل المضارع: جزمه"),
-    ("اللفيف المفروق", "اللفيف المفروق واللفيف المقرون"),
+    ("جزم المضارع", "جزم الفعل المضارع"),
+    ("اللفيف المفروق", "اللفيف (المفروق والمقرون)"),
 ])
 def test_lecons_de_1ac_retrouvees(base_indexee, question, lecon):
     reference = chercher(base_indexee, question, "P2")[0]["reference"]
@@ -180,3 +180,28 @@ def test_lecons_du_primaire_retrouvees(base_indexee, question, lecon):
     from rag.arabe import normaliser
 
     assert normaliser(lecon) in normaliser(chercher(base_indexee, question)[0]["reference"])
+
+
+def test_tout_le_texte_arabe_est_vocalise():
+    """Exercices (énoncé, indice, explication) et cours : au moins une voyelle pour deux lettres arabes
+    (seules les lignes des formes des lettres du CP, « الأَشْكَالُ », sont des lettres nues)."""
+    import glob
+    import re
+
+    import yaml
+
+    lettres, voyelles = re.compile(r"[ء-ي]"), re.compile(r"[ً-ْ]")
+
+    def vocalise(t):
+        n = len(lettres.findall(t))
+        return n == 0 or len(voyelles.findall(t)) / n >= 0.5
+
+    for f in glob.glob("agent/tools/exercices_*.yaml"):
+        for notion in yaml.safe_load(open(f, encoding="utf-8"))["notions"]:
+            for ex in notion["exercices"]:
+                for champ in ("enonce", "indice", "explication"):
+                    assert vocalise(ex[champ]), (ex["id"], champ)
+    for f in glob.glob("docs/cours/*.md"):
+        for ligne in open(f, encoding="utf-8"):
+            if not ligne.startswith(("#", ">")) and "الأَشْكَالُ" not in ligne and "المُدُودُ: آ" not in ligne:
+                assert vocalise(ligne), (f, ligne)
