@@ -25,6 +25,7 @@ from agent.tools._commun import choix_de_l_enonce, normaliser
 from agent.tools.donnees_exemple import EXERCICES
 
 PAS_COMPRIS = "لَمْ أَفْهَمْ"
+SUIVANT = "فَهِمْتُ، التَّالِي ←"
 OUVERTURE = "[L'élève ouvre une nouvelle séance.]"
 DOSSIER_COURS = Path(__file__).resolve().parent.parent / "docs" / "cours"
 
@@ -57,6 +58,18 @@ def _sections_de_cours() -> list[tuple[str, str]]:
 def _resume(corps: str) -> str:
     lignes = [re.sub(r"^- ", "• ", l) for l in corps.splitlines() if l.strip() and "لُعْبَةٌ" not in l]
     return "\n".join(lignes[:8])
+
+
+def etapes(notion: str) -> list[str]:
+    """Leçon découpée en petites étapes (lignes « --- » dans la section de docs/cours/) ; [] si non découpée."""
+    cle = normaliser(notion)
+    for titre, corps in _sections_de_cours():
+        if (titre.startswith(cle) or cle in titre) and re.search(r"^---\s*$", corps, re.M):
+            return [
+                "\n".join(re.sub(r"^- ", "• ", l) for l in bloc.strip().splitlines() if l.strip())
+                for bloc in re.split(r"^---\s*$", corps, flags=re.M) if bloc.strip()
+            ]
+    return []
 
 
 def presentation(notion: str, db=None) -> str:
@@ -96,7 +109,9 @@ def _ajouter(db, seance_id: int, eleve: str | None, tuteur: str) -> None:
 
 
 def choix_courants(db, seance_id: int) -> list[str]:
-    (ex_id,) = db.execute("SELECT exercice_en_cours FROM seances WHERE id = ?", (seance_id,)).fetchone()
+    ex_id, etape = db.execute("SELECT exercice_en_cours, etape_cours FROM seances WHERE id = ?", (seance_id,)).fetchone()
+    if etape is not None:
+        return [SUIVANT]
     return choix_de_l_enonce(EXERCICES[ex_id][1]["enonce"]) if ex_id else []
 
 
@@ -104,7 +119,8 @@ def choix_courants(db, seance_id: int) -> list[str]:
 
 
 def _proposer(ctx: Contexte, notion_precedente: str | None) -> tuple[str, str | None]:
-    """Texte de l'exercice suivant (avec la présentation si la leçon change) et son identifiant."""
+    """Texte de l'exercice suivant (avec la présentation si la leçon change) et son identifiant.
+    Leçon découpée en étapes : on montre la 1re étape ; l'exercice viendra après la dernière."""
     suivant = generer_exercice.exercice_suivant(ctx)
     if "exercice_id" not in suivant:
         if suivant.get("palier_termine"):
@@ -112,13 +128,23 @@ def _proposer(ctx: Contexte, notion_precedente: str | None) -> tuple[str, str | 
                     "اخْتِبَارَ المُرُورِ (زِرُّ « Test de passage »)."), None
         return "أَنْهَيْتَ كُلَّ التَّمَارِينِ الجَدِيدَةِ لِهَذَا اليَوْمِ. أَحْسَنْتَ!", None
     parties = []
+    ctx.db.execute("UPDATE seances SET etape_cours = NULL WHERE id = ?", (ctx.seance_id,))
     if suivant["notion"] != notion_precedente:
         parties.append(f"📘 دَرْسٌ جَدِيدٌ: {suivant['notion']}")
+        decoupee = etapes(suivant["notion"])
+        if len(decoupee) > 1:
+            ctx.db.execute("UPDATE seances SET etape_cours = 0 WHERE id = ?", (ctx.seance_id,))
+            parties.append(_etape(decoupee, 0))
+            return "\n\n".join(parties), suivant["exercice_id"]
         resume = presentation(suivant["notion"], ctx.db)
         if resume:
             parties.append(resume)
     parties.append(suivant["enonce"])
     return "\n\n".join(parties), suivant["exercice_id"]
+
+
+def _etape(decoupee: list[str], n: int) -> str:
+    return f"({n + 1}/{len(decoupee)})\n{decoupee[n]}"
 
 
 def _contexte(db, eleve_id: int, seance_id: int) -> Contexte:
@@ -147,6 +173,22 @@ def repondre(db, eleve_id: int, seance_id: int, texte: str, tuteur=None, questio
     notion, ex = EXERCICES[ex_id]
     choix = choix_de_l_enonce(ex["enonce"])
     ctx = _contexte(db, eleve_id, seance_id)
+
+    (etape,) = db.execute("SELECT etape_cours FROM seances WHERE id = ?", (seance_id,)).fetchone()
+    if etape is not None and not question:
+        decoupee = etapes(notion)
+        if texte == PAS_COMPRIS:  # l'IA réexplique cette étape (réponse gardée pour la prochaine fois)
+            pseudo = {"enonce": decoupee[etape], "explication": decoupee[etape]}
+            r = _demander_a_l_ia(db, eleve_id, seance_id, texte, pseudo, f"{notion}#etape{etape}", tuteur)
+            return r
+        if etape + 1 < len(decoupee):
+            db.execute("UPDATE seances SET etape_cours = ? WHERE id = ?", (etape + 1, seance_id))
+            message = _etape(decoupee, etape + 1)
+        else:
+            db.execute("UPDATE seances SET etape_cours = NULL WHERE id = ?", (seance_id,))
+            message = f"✏️ هَيَّا نَتَمَرَّنُ!\n\n{ex['enonce']}"
+        _ajouter(db, seance_id, texte, message)
+        return {"reponse": message, "terminee": False}
 
     if question:
         return _demander_a_l_ia(db, eleve_id, seance_id, texte, ex, ex_id, tuteur)

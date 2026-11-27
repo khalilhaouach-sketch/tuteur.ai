@@ -263,6 +263,13 @@ Le contenu n'est plus organisé par classe : un seul parcours ordonné va des le
 - **Révision** : le tuteur peut reprendre les leçons des paliers précédents, jamais celles des paliers suivants.
 - Les tests sont corrigés automatiquement avec les banques d'exercices, sans l'agent.
 
+### Leçons en petites étapes
+
+Une leçon peut être découpée en étapes dans `docs/cours/` (lignes `---` dans sa section) : l'élève voit une étape
+à la fois, avec un exemple simple d'abord, et passe à la suivante avec « فَهِمْتُ، التَّالِي ← » ; « لَمْ أَفْهَمْ »
+fait réexpliquer l'étape par l'IA (réponse gardée). Les exercices commencent après la dernière étape.
+Essai sur « أسلوب التعجب » ; les autres leçons gardent un résumé d'un bloc tant qu'elles ne sont pas découpées.
+
 ### Accès des enfants et voix
 
 - **Prénom + mot secret** (accès principal) : le parent choisit une fois le mot secret de chaque enfant (haché en

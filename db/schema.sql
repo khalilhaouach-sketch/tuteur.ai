@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS seances (
     objectif INTEGER,
     exercice_en_cours TEXT,
     aide_donnee INTEGER NOT NULL DEFAULT 0,
-    exercices_faits INTEGER NOT NULL DEFAULT 0
+    exercices_faits INTEGER NOT NULL DEFAULT 0,
+    etape_cours INTEGER                           -- leçon découpée en étapes : étape affichée (NULL : exercice)
 );
 CREATE INDEX IF NOT EXISTS idx_seances_eleve ON seances(eleve_id);
 

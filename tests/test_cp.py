@@ -167,8 +167,17 @@ def test_seance_au_college(client, appareil_eleve, faux_tuteur):
     appareil_eleve.post("/eleve/connexion", json={"code": code})
     faux_tuteur([])
     r = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()
-    assert "دَرْسٌ جَدِيدٌ: أسلوب التعجب" in r["reponse"] and "مَا أَفْعَلَهُ" in r["reponse"]
-    assert len(r["choix"]) >= 2
+    s = r["seance_id"]
+    # Leçon découpée en petites étapes : la 1re, puis « فَهِمْتُ، التَّالِي » jusqu'au premier exercice.
+    assert "دَرْسٌ جَدِيدٌ: أسلوب التعجب" in r["reponse"] and "(1/5)" in r["reponse"] and "مَا أَجْمَلَ السَّمَاءَ" in r["reponse"]
+    assert r["choix"] == ["فَهِمْتُ، التَّالِي ←"]
+    for n in range(2, 6):
+        r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "فَهِمْتُ، التَّالِي ←"}).json()
+        assert f"({n}/5)" in r["reponse"]
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "فَهِمْتُ، التَّالِي ←"}).json()
+    assert "هَيَّا نَتَمَرَّنُ" in r["reponse"] and len(r["choix"]) >= 2
+    # Aucune réponse n'a été comptée pendant les étapes.
+    assert db.ouvrir().execute("SELECT COUNT(*) FROM tentatives").fetchone()[0] == 0
 
 
 def test_page_eleve_choix_du_prenom_et_voix_pour_tous(client):
@@ -176,3 +185,21 @@ def test_page_eleve_choix_du_prenom_et_voix_pour_tous(client):
     assert 'id="ecran-famille"' in page and "/famille/eleves" in page and 'id="changer"' in page
     # Le bouton 🔊 n'est plus réservé au CP ; la lecture automatique, si.
     assert "body.mode-cp .msg.tuteur .ecouter" not in page and 'if (profil === "P1") parler(texte)' in page
+
+
+def test_pas_compris_pendant_une_etape_de_cours(client, appareil_eleve, faux_tuteur):
+    """« لَمْ أَفْهَمْ » sur une étape du cours : l'IA réexplique l'étape, puis la leçon continue."""
+    from agent import parcours
+
+    inscrire(client)
+    eleve = client.post("/eleves", json={"prenom": "Yasmine", "profil": "P2"}).json()
+    client.put(f"/eleves/{eleve['id']}/palier", json={"palier": parcours.numero_de("3ac-2")})
+    code = client.post(f"/eleves/{eleve['id']}/code").json()["code"]
+    appareil_eleve.post("/eleve/connexion", json={"code": code})
+    faux = faux_tuteur([reponse(texte("حِينَ يُدْهِشُكَ شَيْءٌ تَقُولُ: مَا أَجْمَلَهُ!"))])
+    s = appareil_eleve.post("/eleve/seances", json={"nombre": 5}).json()["seance_id"]
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "لَمْ أَفْهَمْ"}).json()
+    assert len(faux.appels) == 1 and "يُدْهِشُكَ" in r["reponse"]
+    assert r["choix"] == ["فَهِمْتُ، التَّالِي ←"]  # on reste sur la même étape
+    r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "فَهِمْتُ، التَّالِي ←"}).json()
+    assert "(2/5)" in r["reponse"]
