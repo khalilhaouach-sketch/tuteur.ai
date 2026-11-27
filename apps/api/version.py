@@ -1,3 +1,3 @@
 """Version affichée en bas des pages et sur /version (à changer à chaque publication)."""
 
-VERSION = "2026-11-27 · 1AC en étapes et vocalisée"
+VERSION = "2026-11-28 · lecture à voix haute améliorée"

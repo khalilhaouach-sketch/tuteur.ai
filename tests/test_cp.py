@@ -153,7 +153,7 @@ def test_page_eleve_lit_a_voix_haute_au_cp(client):
 def test_la_voix_ne_lit_pas_la_mise_en_forme(client):
     """Les astérisques du gras (**mot**), les # et les puces ne sont ni lus à voix haute ni affichés."""
     page = client.get("/").text
-    assert 'replace(/[*_#`~|>=\\[\\]{}<•→←]/g, " ")' in page
+    assert "replace(/[*_#`~|>=\\[\\]{}<•→←✓✗]/g, \" \")" in page
     assert "afficherMisEnForme(div, texte)" in page
     assert "div.innerHTML" not in page  # le texte du modèle n'est jamais interprété comme du HTML
 
@@ -205,3 +205,11 @@ def test_pas_compris_pendant_une_etape_de_cours(client, appareil_eleve, faux_tut
     assert r["choix"] == ["فَهِمْتُ، التَّالِي ←"]  # on reste sur la même étape
     r = appareil_eleve.post(f"/eleve/seances/{s}/messages", json={"texte": "فَهِمْتُ، التَّالِي ←"}).json()
     assert "(2/5)" in r["reponse"]
+
+
+
+def test_lecture_a_voix_haute_soignee(client):
+    """Lecture phrase par phrase, meilleure voix arabe (naturelle d'abord), choix de la voix, 🔊 pour arrêter."""
+    page = client.get("/").text
+    for element in ["function phrases", "function noteVoix", 'id="choix-voix"', "arreterLecture", "natural"]:
+        assert element in page, element

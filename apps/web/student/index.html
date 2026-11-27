@@ -85,6 +85,10 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
       <button id="test-voix" class="secondaire">🔊 Tester la voix</button>
+      <span id="zone-choix-voix" hidden>
+        <label for="choix-voix">Voix</label>
+        <select id="choix-voix" style="width:auto;max-width:16em"></select>
+      </span>
       <label for="vitesse-voix">Vitesse de la voix</label>
       <select id="vitesse-voix" style="width:auto">
         <option value="0.5">Très lente</option><option value="0.65">Lente</option>
@@ -152,35 +156,88 @@ const voix = { liste: [] };
 function chargerVoix() {
   if (!("speechSynthesis" in window)) return;
   voix.liste = speechSynthesis.getVoices().filter((v) => (v.lang || "").toLowerCase().startsWith("ar"));
+  remplirChoixVoix();
 }
 if ("speechSynthesis" in window) { chargerVoix(); speechSynthesis.onvoiceschanged = chargerVoix; }
 
+// Qualité d'une voix arabe : les voix « naturelles » (Edge : « Online (Natural) ») et celles de Google sont
+// bien plus claires que les voix système ; à qualité égale, l'arabe du Maroc d'abord.
+function noteVoix(v) {
+  const nom = (v.name || "").toLowerCase();
+  let n = 0;
+  if (nom.includes("natural") || nom.includes("online") || nom.includes("neural")) n += 4;
+  if (nom.includes("google")) n += 3;
+  if (!v.localService) n += 1;
+  if ((v.lang || "").toLowerCase() === "ar-ma") n += 2;
+  return n;
+}
+function voixChoisie() {
+  try { return localStorage.getItem("voix-arabe"); } catch { return null; }
+}
 function meilleureVoix() {
-  // Préférence : arabe du Maroc, puis toute voix arabe.
-  return voix.liste.find((v) => v.lang.toLowerCase() === "ar-ma") || voix.liste[0] || null;
+  const choisie = voix.liste.find((v) => v.name === voixChoisie());
+  if (choisie) return choisie;
+  return [...voix.liste].sort((a, b) => noteVoix(b) - noteVoix(a))[0] || null;
+}
+function remplirChoixVoix() {
+  const sel = $("choix-voix"); if (!sel) return;
+  sel.innerHTML = "";
+  const auto = document.createElement("option"); auto.value = ""; auto.textContent = "Automatique (la meilleure)";
+  sel.appendChild(auto);
+  for (const v of [...voix.liste].sort((a, b) => noteVoix(b) - noteVoix(a))) {
+    const o = document.createElement("option"); o.value = v.name; o.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(o);
+  }
+  sel.value = voix.liste.some((v) => v.name === voixChoisie()) ? voixChoisie() : "";
+  $("zone-choix-voix").hidden = voix.liste.length < 2;
 }
 
+// Texte lu : seulement l'arabe, sans symboles ni mise en forme ; les choix « (أ / ب) » sont lus avec une pause.
 function texteAPrononcer(texte) {
   return texte
+    .replace(/ {2,}/g, "\n")                           // « مَ  مُ  مِ » (espaces doubles des cours) : une pause entre chaque
+    .replace(/يَا\s+[A-Za-zÀ-ÿ]+/g, "")                  // « يَا Adam » : prénom en lettres latines, non lu (ni le « يَا »)
     .replace(/\p{Extended_Pictographic}/gu, "")       // emojis
-    .replace(/\u0640/g, "")                            // tatweel des formes de lettres (مـ ـمـ ـم)
+    .replace(/[️‍]/g, "")
+    .replace(/\(\s*\d+\s*\/\s*\d+\s*\)/g, "")          // numéro d'étape « (2/4) »
+    .replace(/ـ/g, "")                            // tatweel des formes de lettres (مـ ـمـ ـم)
     .replace(/[A-Za-zÀ-ÿ]+/g, "")                      // le tuteur ne lit que l'arabe
-    .replace(/[«»"()\/]/g, " ")
-    .replace(/[*_#`~|>=\[\]{}<•→←]/g, " ")             // mise en forme (gras, titres, puces) : jamais lue
+    .replace(/\s*[\/+]\s*/g, "، ")                      // choix « أ / ب » et formules « مَا + أَفْعَلَ » : petite pause
+    .replace(/[«»"()]/g, " ")
+    .replace(/[*_#`~|>=\[\]{}<•→←✓✗]/g, " ")           // mise en forme (gras, titres, puces) : jamais lue
     .replace(/(^|\n)\s*[-–]\s+/g, "$1")                // tirets de liste en début de ligne
-    .replace(/\s+/g, " ").trim();
+    .replace(/[ \t]+/g, " ").trim();
 }
 
+// Découpé en phrases (lignes, puis . ؟ ! :) : lecture plus claire, pauses entre les phrases,
+// et pas de coupure des longs textes (certains navigateurs s'arrêtent au bout de quelques secondes).
+function phrases(texte) {
+  return texteAPrononcer(texte)
+    .split(/\n+|(?<=[.؟?!:])\s+/)
+    .map((p) => p.replace(/^[\s،,.:]+|[\s،,]+$/g, "").trim())
+    .filter((p) => /[ء-ي]/.test(p));
+}
+
+let lectureEnCours = false;
 function parler(texte) {
   if (!("speechSynthesis" in window)) return false;
-  const t = texteAPrononcer(texte);
-  if (!t) return false;
+  const morceaux = phrases(texte);
+  if (!morceaux.length) return false;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t);
-  u.lang = "ar"; u.rate = vitesseVoix();               // réglable sur l'écran d'accueil
-  const v = meilleureVoix(); if (v) { u.voice = v; u.lang = v.lang; }
-  speechSynthesis.speak(u);
+  const v = meilleureVoix();
+  morceaux.forEach((m, i) => {
+    const u = new SpeechSynthesisUtterance(m);
+    u.lang = v ? v.lang : "ar"; if (v) u.voice = v;
+    u.rate = vitesseVoix();
+    if (i === morceaux.length - 1) u.onend = u.onerror = () => { lectureEnCours = false; };
+    speechSynthesis.speak(u);
+  });
+  lectureEnCours = true;
   return true;
+}
+function arreterLecture() {
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  lectureEnCours = false;
 }
 
 // Vitesse : choisie sur cet appareil (gardée dans le navigateur) ; par défaut lente au CP, moyenne sinon.
@@ -189,6 +246,10 @@ function vitesseVoix() {
   try { v = localStorage.getItem("vitesse-voix"); } catch {}
   return Number(v) || (profil === "P1" ? 0.65 : 0.8);
 }
+$("choix-voix").onchange = () => {
+  try { localStorage.setItem("voix-arabe", $("choix-voix").value); } catch {}
+  parler("بَ بُ بِ. بَابٌ.");
+};
 $("vitesse-voix").onchange = () => {
   try { localStorage.setItem("vitesse-voix", $("vitesse-voix").value); } catch {}
   parler("بَ بُ بِ. بَابٌ.");
@@ -197,7 +258,7 @@ $("vitesse-voix").onchange = () => {
 function boutonEcouter(texte) {
   const b = document.createElement("button");
   b.className = "ecouter"; b.textContent = "🔊"; b.title = "Écouter"; b.type = "button";
-  b.onclick = (e) => { e.stopPropagation(); parler(texte); };
+  b.onclick = (e) => { e.stopPropagation(); if (lectureEnCours && speechSynthesis.speaking) arreterLecture(); else parler(texte); };
   return b;
 }
 
