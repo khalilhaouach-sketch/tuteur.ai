@@ -118,6 +118,7 @@
     <button id="question" class="secondaire" title="Écris ta question dans la case, puis touche ce bouton">❓ Poser une question</button>
     <button id="terminer" class="secondaire">Terminer la séance</button>
   </section>
+  <p id="version" style="color:var(--doux);font-size:.75rem;text-align:center;margin-top:24px"></p>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -426,6 +427,7 @@ function finDeSeance() {
 }
 
 demarrer();
+fetch("/version").then((r) => r.json()).then((v) => { document.getElementById("version").textContent = "Version " + v.version; }).catch(() => {});
 </script>
 </body>
 </html>

@@ -118,6 +118,7 @@
     <div class="ligne"><button id="retour-journal" class="lien">← Retour</button><h2 id="titre-journal" style="margin:0"></h2></div>
     <div id="journal"></div>
   </section>
+  <p id="version" style="color:var(--doux);font-size:.75rem;text-align:center;margin-top:24px"></p>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
@@ -306,6 +307,7 @@ $("retirer-appareils").onclick = async () => {
   try { await tableau(); }
   catch (e) { afficher("ecran-tableau"); $("liste-eleves").textContent = "Erreur de chargement : " + e.message + " (rafraîchissez la page)."; }
 })();
+fetch("/version").then((r) => r.json()).then((v) => { document.getElementById("version").textContent = "Version " + v.version; }).catch(() => {});
 </script>
 </body>
 </html>

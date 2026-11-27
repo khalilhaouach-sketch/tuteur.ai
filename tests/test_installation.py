@@ -34,3 +34,12 @@ def test_lanceur():
     ip = lancer_maison.adresse_locale()
     assert ip.count(".") == 3
     assert lancer_maison.verifier() == []
+
+
+def test_pages_sans_cache_et_version(client):
+    from apps.api.version import VERSION
+
+    for page in ("/", "/parent"):
+        r = client.get(page)
+        assert r.headers["cache-control"] == "no-store" and 'id="version"' in r.text
+    assert client.get("/version").json() == {"version": VERSION}
